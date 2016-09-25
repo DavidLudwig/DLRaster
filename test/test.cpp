@@ -28,7 +28,7 @@ typedef enum DLR_Test_RendererType {
 
 enum DLRTest_Env_Flags {
     DLRTEST_ENV_DEFAULTS    = 0,
-    DLRTEST_ENV_COMPARE		= (1 << 0),
+    DLRTEST_ENV_COMPARE     = (1 << 0),
 };
 
 struct DLRTest_Env {
@@ -77,12 +77,12 @@ static const int num_envs = SDL_arraysize(envs);
 static SDL_Window * windows[num_envs];
 
 enum DLRTest_Compare {
-	DLRTEST_COMPARE_ARGB = 0,
-	DLRTEST_COMPARE_A,
-	DLRTEST_COMPARE_R,
-	DLRTEST_COMPARE_G,
-	DLRTEST_COMPARE_B,
-	DLRTEST_COMPARE_RGB,
+    DLRTEST_COMPARE_ARGB = 0,
+    DLRTEST_COMPARE_A,
+    DLRTEST_COMPARE_R,
+    DLRTEST_COMPARE_G,
+    DLRTEST_COMPARE_B,
+    DLRTEST_COMPARE_RGB,
 };
 static DLRTest_Compare compare = DLRTEST_COMPARE_ARGB;
 
@@ -92,111 +92,111 @@ PFNGLBLENDFUNCSEPARATEPROC _glBlendFuncSeparate = NULL;
 
 SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
 {
-	switch (env->type) {
-		case DLRTEST_TYPE_SOFTWARE: {
-			return env->inner.sw.bg;
-		} break;
+    switch (env->type) {
+        case DLRTEST_TYPE_SOFTWARE: {
+            return env->inner.sw.bg;
+        } break;
 
-		case DLRTEST_TYPE_OPENGL1: {
-			SDL_Surface * output = env->inner.gl.exported;
-			if (output) {
-				if (output->flags & SDL_PREALLOC) {
-					free(output->pixels);
-				}
-				SDL_FreeSurface(output);
-				env->inner.gl.exported = output = NULL;
-			}
-			uint8_t * srcPixels = (uint8_t *) malloc(winW * winH * 4);
-			glReadPixels(
-				0, 0,
-				winW, winH,
-				GL_RGBA,
-				GL_UNSIGNED_BYTE,
-				srcPixels
-			);
-			DLRTest_CheckGL();
-			uint8_t * flippedPixels = (uint8_t *) calloc(winW * winH * 4, 1);
-			int pitch = winW * 4;
-			for (int y = 0; y < winH; ++y) {
-				memcpy(
-					flippedPixels + ((winH - y - 1) * pitch),
-					srcPixels + (y * pitch), 
-					pitch
-				);
-			}
-			free(srcPixels);
-			SDL_Surface * tmp = SDL_CreateRGBSurfaceFrom(
-				flippedPixels,
-				winW, winH,
-				32,
-				pitch,
-				0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
-			);
-			SDL_PixelFormat * targetFormat = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
-			output = SDL_ConvertSurface(tmp, targetFormat, 0);
-			SDL_FreeSurface(tmp);
-			if (output->pixels != flippedPixels) {
-				free(flippedPixels);
-			}
-			SDL_FreeFormat(targetFormat);
-			env->inner.gl.exported = output;
-			return output;
-		} break;
-	}
+        case DLRTEST_TYPE_OPENGL1: {
+            SDL_Surface * output = env->inner.gl.exported;
+            if (output) {
+                if (output->flags & SDL_PREALLOC) {
+                    free(output->pixels);
+                }
+                SDL_FreeSurface(output);
+                env->inner.gl.exported = output = NULL;
+            }
+            uint8_t * srcPixels = (uint8_t *) malloc(winW * winH * 4);
+            glReadPixels(
+                0, 0,
+                winW, winH,
+                GL_RGBA,
+                GL_UNSIGNED_BYTE,
+                srcPixels
+            );
+            DLRTest_CheckGL();
+            uint8_t * flippedPixels = (uint8_t *) calloc(winW * winH * 4, 1);
+            int pitch = winW * 4;
+            for (int y = 0; y < winH; ++y) {
+                memcpy(
+                    flippedPixels + ((winH - y - 1) * pitch),
+                    srcPixels + (y * pitch), 
+                    pitch
+                );
+            }
+            free(srcPixels);
+            SDL_Surface * tmp = SDL_CreateRGBSurfaceFrom(
+                flippedPixels,
+                winW, winH,
+                32,
+                pitch,
+                0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
+            );
+            SDL_PixelFormat * targetFormat = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
+            output = SDL_ConvertSurface(tmp, targetFormat, 0);
+            SDL_FreeSurface(tmp);
+            if (output->pixels != flippedPixels) {
+                free(flippedPixels);
+            }
+            SDL_FreeFormat(targetFormat);
+            env->inner.gl.exported = output;
+            return output;
+        } break;
+    }
 
-	return NULL;
+    return NULL;
 }
 
 static void DLRTest_UpdateWindowTitles()
 {
-	const char * compare_name = "";
-	switch (compare) {
-		case DLRTEST_COMPARE_ARGB: {
-			compare_name = "ARGB";
-		} break;
-		case DLRTEST_COMPARE_A: {
-			compare_name = "A";
-		} break;
-		case DLRTEST_COMPARE_R: {
-			compare_name = "R";
-		} break;
-		case DLRTEST_COMPARE_G: {
-			compare_name = "G";
-		} break;
-		case DLRTEST_COMPARE_B: {
-			compare_name = "B";
-		} break;
-		case DLRTEST_COMPARE_RGB: {
-			compare_name = "RGB";
-		} break;
-	}
+    const char * compare_name = "";
+    switch (compare) {
+        case DLRTEST_COMPARE_ARGB: {
+            compare_name = "ARGB";
+        } break;
+        case DLRTEST_COMPARE_A: {
+            compare_name = "A";
+        } break;
+        case DLRTEST_COMPARE_R: {
+            compare_name = "R";
+        } break;
+        case DLRTEST_COMPARE_G: {
+            compare_name = "G";
+        } break;
+        case DLRTEST_COMPARE_B: {
+            compare_name = "B";
+        } break;
+        case DLRTEST_COMPARE_RGB: {
+            compare_name = "RGB";
+        } break;
+    }
 
-	int curX, curY;
-	if (SDL_GetMouseFocus()) {
-		SDL_GetMouseState(&curX, &curY);
-	} else {
-		curX = curY = -1;
-	}
+    int curX, curY;
+    if (SDL_GetMouseFocus()) {
+        SDL_GetMouseState(&curX, &curY);
+    } else {
+        curX = curY = -1;
+    }
 
-	char window_title[128];
-	for (int i = 0; i < num_envs; ++i) {
-		SDL_Surface * bg = DLRTest_GetSurfaceForView(&envs[i]);
-		Uint32 c = (curX < 0) ? 0 : DLR_GetPixel32(bg->pixels, bg->pitch, 4, curX, curY);
-		Uint8 a, r, g, b;
-		DLR_SplitARGB32(c, a, r, g, b);
+    char window_title[128];
+    for (int i = 0; i < num_envs; ++i) {
+        SDL_Surface * bg = DLRTest_GetSurfaceForView(&envs[i]);
+        Uint32 c = (curX < 0) ? 0 : DLR_GetPixel32(bg->pixels, bg->pitch, 4, curX, curY);
+        Uint8 a, r, g, b;
+        DLR_SplitARGB32(c, a, r, g, b);
 
-		if (envs[i].flags & DLRTEST_ENV_COMPARE) {
-			SDL_snprintf(window_title, SDL_arraysize(window_title), "%s %s p:(%d,%d) rgb:0x%02x%02x%02x a:0x%02x",
-				envs[i].window_title, compare_name, curX, curY,
-				r, g, b, a);
-		} else {
-			SDL_snprintf(window_title, SDL_arraysize(window_title), "%s p:(%d,%d) rgb:0x%02x%02x%02x a:0x%02x",
-				envs[i].window_title, curX, curY,
-				r, g, b, a);
-		}
-		window_title[SDL_arraysize(window_title)-1] = '\0';
-		SDL_SetWindowTitle(windows[i], window_title);
-	}
+        if (envs[i].flags & DLRTEST_ENV_COMPARE) {
+            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s %s p:(%d,%d) rgb:0x%02x%02x%02x a:0x%02x",
+                envs[i].window_title, compare_name, curX, curY,
+                r, g, b, a);
+        } else {
+            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s p:(%d,%d) rgb:0x%02x%02x%02x a:0x%02x",
+                envs[i].window_title, curX, curY,
+                r, g, b, a);
+        }
+        window_title[SDL_arraysize(window_title)-1] = '\0';
+        SDL_SetWindowTitle(windows[i], window_title);
+    }
 }
 
 void DLRTest_DrawTriangles_OpenGL1(
@@ -219,8 +219,8 @@ void DLRTest_DrawTriangles_OpenGL1(
             glEnable(GL_BLEND);
             DLRTest_CheckGL();
             //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			_glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-			DLRTest_CheckGL();
+            _glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            DLRTest_CheckGL();
             //glAlphaFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
             //DLRTest_CheckGL();
             glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
@@ -344,21 +344,21 @@ void DLRTest_DrawScene(DLRTest_Env * env)
 
         double originX = 20;
         double originY = 20;
-		struct { float a, r, g, b; } c[] = {
+        struct { float a, r, g, b; } c[] = {
 #if 0
-			{1, 1, 0, 0},
-			{1, 0, 1, 0},
-			{1, 0, 0, 1},
+            {1, 1, 0, 0},
+            {1, 0, 1, 0},
+            {1, 0, 0, 1},
 #else
-			{1, 1, 1, 1},
-			{1, 1, 1, 1},
-			{1, 1, 1, 1},
+            {1, 1, 1, 1},
+            {1, 1, 1, 1},
+            {1, 1, 1, 1},
 #endif
-		};
+        };
         DLR_Vertex vertices[] = {
-            {originX      , originY      ,    c[0].a, c[0].r, c[0].g, c[0].b,	0, 0},
-            {originX + 300, originY + 150,    c[1].a, c[1].r, c[1].g, c[1].b,	0, 0},
-            {originX + 150, originY + 300,    c[2].a, c[2].r, c[2].g, c[2].b,	0, 0},
+            {originX      , originY      ,    c[0].a, c[0].r, c[0].g, c[0].b,   0, 0},
+            {originX + 300, originY + 150,    c[1].a, c[1].r, c[1].g, c[1].b,   0, 0},
+            {originX + 150, originY + 300,    c[2].a, c[2].r, c[2].g, c[2].b,   0, 0},
         };
         DLRTest_DrawTriangles(env->type, &state, vertices, SDL_arraysize(vertices));
     }
@@ -372,42 +372,42 @@ void DLRTest_DrawScene(DLRTest_Env * env)
         if (!didInitState) {
             memset(&state, 0, sizeof(state));
 
-			const int whichTex = 3;	// 0: none, 1:image, 2:all-white, 3:vertical gradient, 4:horizontal gradient
-			switch (whichTex) {
-				case 0: {
-					state.texture = NULL;
-				} break;
+            const int whichTex = 3; // 0: none, 1:image, 2:all-white, 3:vertical gradient, 4:horizontal gradient
+            switch (whichTex) {
+                case 0: {
+                    state.texture = NULL;
+                } break;
 
-				case 1: {
-					state.texture = SDL_LoadBMP("texture.bmp");
-				} break;
+                case 1: {
+                    state.texture = SDL_LoadBMP("texture.bmp");
+                } break;
 
-				case 2: {
-					state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-					SDL_FillRect(state.texture, NULL, 0x88888888);
-				} break;
+                case 2: {
+                    state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+                    SDL_FillRect(state.texture, NULL, 0x88888888);
+                } break;
 
-				case 3: {
-					state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-					for (int y = 0; y < 256; ++y) {
-						for (int x = 0; x < 256; ++x) {
-							Uint32 c = DLR_JoinARGB32(0xff, y, y, y);
-							//Uint32 c = (y == 100) ? 0xffffffff : 0x88888888;
-							DLR_SetPixel32(state.texture->pixels, state.texture->pitch, 4, x, y, c);
-						}
-					}
-				} break;
+                case 3: {
+                    state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+                    for (int y = 0; y < 256; ++y) {
+                        for (int x = 0; x < 256; ++x) {
+                            Uint32 c = DLR_JoinARGB32(0xff, y, y, y);
+                            //Uint32 c = (y == 100) ? 0xffffffff : 0x88888888;
+                            DLR_SetPixel32(state.texture->pixels, state.texture->pitch, 4, x, y, c);
+                        }
+                    }
+                } break;
 
-				case 4: {
-					state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-					for (int y = 0; y < 256; ++y) {
-						for (int x = 0; x < 256; ++x) {
-							Uint32 c = DLR_JoinARGB32(0xff, x, x, x);
-							DLR_SetPixel32(state.texture->pixels, state.texture->pitch, 4, x, y, c);
-						}
-					}
-				} break;
-			}
+                case 4: {
+                    state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+                    for (int y = 0; y < 256; ++y) {
+                        for (int x = 0; x < 256; ++x) {
+                            Uint32 c = DLR_JoinARGB32(0xff, x, x, x);
+                            DLR_SetPixel32(state.texture->pixels, state.texture->pitch, 4, x, y, c);
+                        }
+                    }
+                } break;
+            }
 
 
             //SDL_FillRect(state.texture, NULL, 0x770000ff);
@@ -418,46 +418,46 @@ void DLRTest_DrawScene(DLRTest_Env * env)
         state.textureModulate = DLR_TEXTUREMODULATE_COLOR;
         state.blendMode = DLR_BLENDMODE_BLEND;
 
-		int texW, texH;
-		if (state.texture) {
-			texW = state.texture->w;
-			texH = state.texture->h;
-		} else {
-			texW = texH = 256;
-		}
+        int texW, texH;
+        if (state.texture) {
+            texW = state.texture->w;
+            texH = state.texture->h;
+        } else {
+            texW = texH = 256;
+        }
 
-		double originX = 200.51;
-        //double originX = 200.503913879394545460853;	// SHOW
-        //double originX = 200.503913879394545460854;	// ???
-		//double originX = 200.503913879394545460855;	// NO SHOW
-		double originY = 20.;
-		struct { float a, r, g, b; } c[] = {
+        double originX = 200.51;
+        //double originX = 200.503913879394545460853;   // SHOW
+        //double originX = 200.503913879394545460854;   // ???
+        //double originX = 200.503913879394545460855;   // NO SHOW
+        double originY = 20.;
+        struct { float a, r, g, b; } c[] = {
 #if 0
-			{   1,   1, 0.3, 0.3},	// left  top
-			{   1, 0.3,   1, 0.3},	// right top
-			{   1, 0.3, 0.3,   1},  // right bottom
-			{ 0.5,   1,   1,   1},  // left  bottom
+            {   1,   1, 0.3, 0.3},  // left  top
+            {   1, 0.3,   1, 0.3},  // right top
+            {   1, 0.3, 0.3,   1},  // right bottom
+            { 0.5,   1,   1,   1},  // left  bottom
 #else
-			{   1,   1,   1,   1},	// left  top
-			{   1,   1,   1,   1},	// right top
-			{   1,   1,   1,   1},  // right bottom
-			{   1,   1,   1,   1},  // left  bottom
+            {   1,   1,   1,   1},  // left  top
+            {   1,   1,   1,   1},  // right top
+            {   1,   1,   1,   1},  // right bottom
+            {   1,   1,   1,   1},  // left  bottom
 #endif
-		};
+        };
 
         DLR_Vertex vertices[] = {
 #if 1
-			// TRIANGLE: top-right
-            {originX       , originY,			c[0].a, c[0].r, c[0].g, c[0].b,    0, 0},    // left  top
-            {originX + texW, originY,			c[1].a, c[1].r, c[1].g, c[1].b,    1, 0},    // right top
-            {originX + texW, originY + texH,	c[2].a, c[2].r, c[2].g, c[2].b,    1, 1},    // right bottom
+            // TRIANGLE: top-right
+            {originX       , originY,           c[0].a, c[0].r, c[0].g, c[0].b,    0, 0},    // left  top
+            {originX + texW, originY,           c[1].a, c[1].r, c[1].g, c[1].b,    1, 0},    // right top
+            {originX + texW, originY + texH,    c[2].a, c[2].r, c[2].g, c[2].b,    1, 1},    // right bottom
 #endif
 
 #if 1
-			// TRIANGLE: bottom-left
-            {originX + texW, originY + texH,	c[2].a, c[2].r, c[2].g, c[2].b,    1, 1},    // right bottom
-            {originX       , originY + texH,	c[3].a, c[3].r, c[3].g, c[3].b,    0, 1},    // left  bottom
-            {originX       , originY       ,	c[0].a, c[0].r, c[0].g, c[0].b,    0, 0},    // left  top
+            // TRIANGLE: bottom-left
+            {originX + texW, originY + texH,    c[2].a, c[2].r, c[2].g, c[2].b,    1, 1},    // right bottom
+            {originX       , originY + texH,    c[3].a, c[3].r, c[3].g, c[3].b,    0, 1},    // left  bottom
+            {originX       , originY       ,    c[0].a, c[0].r, c[0].g, c[0].b,    0, 0},    // left  top
 #endif
         };
         DLRTest_DrawTriangles(env->type, &state, vertices, SDL_arraysize(vertices));
@@ -467,9 +467,9 @@ void DLRTest_DrawScene(DLRTest_Env * env)
 void DLR_Test_ProcessEvent(const SDL_Event & e)
 {
     switch (e.type) {
-		case SDL_MOUSEMOTION: {
-			DLRTest_UpdateWindowTitles();
-		} break;
+        case SDL_MOUSEMOTION: {
+            DLRTest_UpdateWindowTitles();
+        } break;
 
         case SDL_KEYDOWN: {
             switch (e.key.keysym.sym) {
@@ -502,13 +502,13 @@ void DLR_Test_ProcessEvent(const SDL_Event & e)
                     }
                 } break;
 
-				case SDLK_c: compare = DLRTEST_COMPARE_ARGB; DLRTest_UpdateWindowTitles(); break;
-				case SDLK_a: compare = DLRTEST_COMPARE_A;    DLRTest_UpdateWindowTitles(); break;
-				case SDLK_r: compare = DLRTEST_COMPARE_R;    DLRTest_UpdateWindowTitles(); break;
-				case SDLK_g: compare = DLRTEST_COMPARE_G;    DLRTest_UpdateWindowTitles(); break;
-				case SDLK_b: compare = DLRTEST_COMPARE_B;    DLRTest_UpdateWindowTitles(); break;
-				case SDLK_x: compare = DLRTEST_COMPARE_RGB;  DLRTest_UpdateWindowTitles(); break;
-			}
+                case SDLK_c: compare = DLRTEST_COMPARE_ARGB; DLRTest_UpdateWindowTitles(); break;
+                case SDLK_a: compare = DLRTEST_COMPARE_A;    DLRTest_UpdateWindowTitles(); break;
+                case SDLK_r: compare = DLRTEST_COMPARE_R;    DLRTest_UpdateWindowTitles(); break;
+                case SDLK_g: compare = DLRTEST_COMPARE_G;    DLRTest_UpdateWindowTitles(); break;
+                case SDLK_b: compare = DLRTEST_COMPARE_B;    DLRTest_UpdateWindowTitles(); break;
+                case SDLK_x: compare = DLRTEST_COMPARE_RGB;  DLRTest_UpdateWindowTitles(); break;
+            }
         } break;
         case SDL_WINDOWEVENT: {
             switch (e.window.event) {
@@ -570,13 +570,13 @@ int main(int argc, char *argv[]) {
                     return -1;
                 }
 
-				if ( ! _glBlendFuncSeparate) {
-					_glBlendFuncSeparate = (PFNGLBLENDFUNCSEPARATEPROC) SDL_GL_GetProcAddress("glBlendFuncSeparate");
-					if ( ! _glBlendFuncSeparate) {
-						SDL_Log("SDL_GL_GetProcAddress(\"glBlendFuncSeparate\") failed, err=%s", SDL_GetError());
-						return -1;
-					}
-				}
+                if ( ! _glBlendFuncSeparate) {
+                    _glBlendFuncSeparate = (PFNGLBLENDFUNCSEPARATEPROC) SDL_GL_GetProcAddress("glBlendFuncSeparate");
+                    if ( ! _glBlendFuncSeparate) {
+                        SDL_Log("SDL_GL_GetProcAddress(\"glBlendFuncSeparate\") failed, err=%s", SDL_GetError());
+                        return -1;
+                    }
+                }
             } break;
 
             default:
@@ -584,10 +584,10 @@ int main(int argc, char *argv[]) {
                 return -1;
         }
     } // end of init loop
-	DLRTest_UpdateWindowTitles();
+    DLRTest_UpdateWindowTitles();
 
     while (1) {
-		// Process events
+        // Process events
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             DLR_Test_ProcessEvent(e);
@@ -617,11 +617,11 @@ int main(int argc, char *argv[]) {
                 } break;
             }
 
-			// Render Scene
+            // Render Scene
             if ( ! (env->flags & DLRTEST_ENV_COMPARE)) {
                 DLRTest_DrawScene(&envs[i]);
             } else {
-				// Draw diff between scenes 0 and 1
+                // Draw diff between scenes 0 and 1
                 SDL_Surface * dest = DLRTest_GetSurfaceForView(&envs[i]);
                 if (dest) {
                     SDL_Surface * A = DLRTest_GetSurfaceForView(&envs[0]);
@@ -636,34 +636,34 @@ int main(int argc, char *argv[]) {
                             int ba, br, bg, bb;
                             DLR_SplitARGB32(bc, ba, br, bg, bb);
 
-							Uint32 dc = 0xffff0000;
-							switch (compare) {
-								case DLRTEST_COMPARE_ARGB: {
-									dc = (ac == bc) ? 0x00000000 : 0xffffffff;
-								} break;
-								case DLRTEST_COMPARE_A: {
-									dc = (aa == ba) ? 0x00000000 : 0xffffffff;
-								} break;
-								case DLRTEST_COMPARE_R: {
-									dc = (ar == br) ? 0x00000000 : 0xffffffff;
-								} break;
-								case DLRTEST_COMPARE_G: {
-									dc = (ag == bg) ? 0x00000000 : 0xffffffff;
-								} break;
-								case DLRTEST_COMPARE_B: {
-									dc = (ab == bb) ? 0x00000000 : 0xffffffff;
-								} break;
-								case DLRTEST_COMPARE_RGB: {
-									dc = (ar == br && ag == bg && ab == bb) ? 0x00000000 : 0xffffffff;
-								} break;
-							}
+                            Uint32 dc = 0xffff0000;
+                            switch (compare) {
+                                case DLRTEST_COMPARE_ARGB: {
+                                    dc = (ac == bc) ? 0x00000000 : 0xffffffff;
+                                } break;
+                                case DLRTEST_COMPARE_A: {
+                                    dc = (aa == ba) ? 0x00000000 : 0xffffffff;
+                                } break;
+                                case DLRTEST_COMPARE_R: {
+                                    dc = (ar == br) ? 0x00000000 : 0xffffffff;
+                                } break;
+                                case DLRTEST_COMPARE_G: {
+                                    dc = (ag == bg) ? 0x00000000 : 0xffffffff;
+                                } break;
+                                case DLRTEST_COMPARE_B: {
+                                    dc = (ab == bb) ? 0x00000000 : 0xffffffff;
+                                } break;
+                                case DLRTEST_COMPARE_RGB: {
+                                    dc = (ar == br && ag == bg && ab == bb) ? 0x00000000 : 0xffffffff;
+                                } break;
+                            }
                             DLR_SetPixel32(dest->pixels, dest->pitch, 4, x, y, dc);
                         }
                     }
                 }
             }
 
-			// Present rendered scene
+            // Present rendered scene
             switch (env->type) {
                 case DLRTEST_TYPE_SOFTWARE: {
                     SDL_Renderer * r = SDL_GetRenderer(windows[i]);

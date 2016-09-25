@@ -20,8 +20,8 @@ typedef enum {
 } DLR_TextureModulate;
 
 typedef struct DLR_Point {
-	double x;
-	double y;
+    double x;
+    double y;
 } DLR_Point;
 
 typedef struct DLR_Vertex {
@@ -123,21 +123,21 @@ void DLR_CalculateBarycentricCoordinates(DLR_Vertex p, DLR_Vertex a, DLR_Vertex 
 
 static inline bool DLR_WithinEdgeAreaClockwise(double barycentric, double edgeX, double edgeY)
 {
-	if (barycentric == 0) {
-		if (edgeY == 0 && edgeX > 0) {
-			return true;
-		} else if (edgeY < 0) {
-			return true;
-		} else {
-			return false;
-		}
-	} else {
-		if (barycentric > 0) {
-			return true;
-		} else {
-			return false;
-		}
-	}
+    if (barycentric == 0) {
+        if (edgeY == 0 && edgeX > 0) {
+            return true;
+        } else if (edgeY < 0) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        if (barycentric > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
 void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
@@ -163,25 +163,25 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
     for (int y = ymin; y <= ymax; ++y) {
         for (int x = 0; x <= xmax; ++x) {
             DLR_Vertex p = {(double)x, (double)y};
-			p.x += 0.5;	// Use the center of the pixel, to determine whether to rasterize
-			p.y += 0.5;
+            p.x += 0.5; // Use the center of the pixel, to determine whether to rasterize
+            p.y += 0.5;
             DLR_CalculateBarycentricCoordinates(p, v0, v1, v2, &lambda0, &lambda1, &lambda2);
 
 //            if (lambda0 >= 0.f && lambda1 >= 0.f && lambda2 >= 0.f) {
 
-			if (x == 23 && y == 26) {
-				int foo = 1;
-			}
+            if (x == 23 && y == 26) {
+                int foo = 1;
+            }
 
             DLR_Vertex edge0 = {v2.x-v1.x/*-v2.x*/, v2.y-v1.y/*-v2.y*/}; // v2 - v1
             DLR_Vertex edge1 = {v0.x-v2.x/*-v0.x*/, v0.y-v2.y/*-v0.y*/}; // v0 - v2
-			DLR_Vertex edge2 = {v1.x-v0.x/*-v1.x*/, v1.y-v0.y/*-v1.y*/}; // v1 - v0
+            DLR_Vertex edge2 = {v1.x-v0.x/*-v1.x*/, v1.y-v0.y/*-v1.y*/}; // v1 - v0
             bool overlaps = true;
-			overlaps &= DLR_WithinEdgeAreaClockwise(lambda0, edge0.x, edge0.y);
-			overlaps &= DLR_WithinEdgeAreaClockwise(lambda1, edge1.x, edge1.y);
-			overlaps &= DLR_WithinEdgeAreaClockwise(lambda2, edge2.x, edge2.y);
+            overlaps &= DLR_WithinEdgeAreaClockwise(lambda0, edge0.x, edge0.y);
+            overlaps &= DLR_WithinEdgeAreaClockwise(lambda1, edge1.x, edge1.y);
+            overlaps &= DLR_WithinEdgeAreaClockwise(lambda2, edge2.x, edge2.y);
             if (overlaps) {
-				double fincomingA = (lambda0 * v0.a) + (lambda1 * v1.a) + (lambda2 * v2.a);
+                double fincomingA = (lambda0 * v0.a) + (lambda1 * v1.a) + (lambda2 * v2.a);
                 double fincomingR = (lambda0 * v0.r) + (lambda1 * v1.r) + (lambda2 * v2.r);
                 double fincomingG = (lambda0 * v0.g) + (lambda1 * v1.g) + (lambda2 * v2.g);
                 double fincomingB = (lambda0 * v0.b) + (lambda1 * v1.b) + (lambda2 * v2.b);
