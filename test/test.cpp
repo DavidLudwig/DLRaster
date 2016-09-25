@@ -602,6 +602,7 @@ int main(int argc, char *argv[]) {
                 case DLRTEST_TYPE_SOFTWARE: {
                 } break;
                 case DLRTEST_TYPE_OPENGL1: {
+                    SDL_GL_MakeCurrent(windows[i], env->inner.gl.gl);
                     glClearColor(0, 0, 0, 1);
                     glClear(GL_COLOR_BUFFER_BIT);
                     gbMat4 rotateX;
