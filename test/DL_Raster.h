@@ -207,8 +207,8 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                     double uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
                     double ftexX = (uv * (double)(state->texture->w - 1));
                     double ftexY = (uw * (double)(state->texture->h - 1));
-                    int ntexX = (int)ftexX;
-                    int ntexY = (int)ftexY;
+                    int ntexX = (int)round(ftexX);
+                    int ntexY = (int)round(ftexY);
                     SDL_assert(ntexX >= 0 && ntexX < state->texture->w);
                     SDL_assert(ntexY >= 0 && ntexY < state->texture->h);
 
@@ -277,10 +277,10 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                         // dstA = srcA + (dstA * (1-srcA))
                         fdestA = fsrcA + (fdestA * (1.f - fsrcA));
 
-                        ndestA = (int)(fdestA * 255.f);
-                        ndestR = (int)(fdestR * 255.f);
-                        ndestG = (int)(fdestG * 255.f);
-                        ndestB = (int)(fdestB * 255.f);
+                        ndestA = (int)round(fdestA * 255.f);
+                        ndestR = (int)round(fdestR * 255.f);
+                        ndestG = (int)round(fdestG * 255.f);
+                        ndestB = (int)round(fdestB * 255.f);
                         SDL_assert(ndestA >= 0 && ndestA <= 255);
                         SDL_assert(ndestR >= 0 && ndestR <= 255);
                         SDL_assert(ndestG >= 0 && ndestG <= 255);
