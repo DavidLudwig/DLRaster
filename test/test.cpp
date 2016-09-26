@@ -37,6 +37,7 @@ struct DLRTest_Env {
     int window_x;               // window initial X
     int window_y;               // window initial Y
     int flags;                  // DLRTest_Env_Flags
+    SDL_Window * window;        // the SDL_Window, set on app-init (to a valid, non-NULL SDL_Window *)
     union {
         struct {
             SDL_Surface * bg;       // background surface (in main memory)
@@ -74,7 +75,6 @@ static DLRTest_Env envs[] = {
 };
 
 static const int num_envs = SDL_arraysize(envs);
-static SDL_Window * windows[num_envs];
 
 enum DLRTest_Compare {
     DLRTEST_COMPARE_ARGB = 0,
@@ -98,6 +98,7 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
         } break;
 
         case DLRTEST_TYPE_OPENGL1: {
+            SDL_GL_MakeCurrent(env->window, env->inner.gl.gl);
             SDL_Surface * output = env->inner.gl.exported;
             if (output) {
                 if (output->flags & SDL_PREALLOC) {
@@ -195,7 +196,7 @@ static void DLRTest_UpdateWindowTitles()
                 r, g, b, a);
         }
         window_title[SDL_arraysize(window_title)-1] = '\0';
-        SDL_SetWindowTitle(windows[i], window_title);
+        SDL_SetWindowTitle(envs[i].window, window_title);
     }
 }
 
@@ -532,20 +533,20 @@ int main(int argc, char *argv[]) {
             window_flags |= SDL_WINDOW_OPENGL;
         }
 
-        windows[i] = SDL_CreateWindow(
+        envs[i].window = SDL_CreateWindow(
             envs[i].window_title,
             envs[i].window_x,
             envs[i].window_y,
             winW, winH,
             window_flags
         );
-        if ( ! windows[i]) {
+        if ( ! envs[i].window) {
             SDL_Log("SDL_CreateWindow failed, err=%s", SDL_GetError());
             return -1;
         }
         switch (envs[i].type) {
             case DLRTEST_TYPE_SOFTWARE: {
-                SDL_Renderer * r = SDL_CreateRenderer(windows[i], 0, -1);
+                SDL_Renderer * r = SDL_CreateRenderer(envs[i].window, 0, -1);
                 if ( ! r) {
                     SDL_Log("SDL_CreateRenderer failed, err=%s", SDL_GetError());
                     return -1;
@@ -564,7 +565,7 @@ int main(int argc, char *argv[]) {
             } break;
 
             case DLRTEST_TYPE_OPENGL1: {
-                envs[i].inner.gl.gl = SDL_GL_CreateContext(windows[i]);
+                envs[i].inner.gl.gl = SDL_GL_CreateContext(envs[i].window);
                 if ( ! envs[i].inner.gl.gl) {
                     SDL_Log("SDL_GL_CreateContext failed, err=%s", SDL_GetError());
                     return -1;
@@ -602,7 +603,7 @@ int main(int argc, char *argv[]) {
                 case DLRTEST_TYPE_SOFTWARE: {
                 } break;
                 case DLRTEST_TYPE_OPENGL1: {
-                    SDL_GL_MakeCurrent(windows[i], env->inner.gl.gl);
+                    SDL_GL_MakeCurrent(envs[i].window, env->inner.gl.gl);
                     glClearColor(0, 0, 0, 1);
                     glClear(GL_COLOR_BUFFER_BIT);
                     gbMat4 rotateX;
@@ -667,7 +668,7 @@ int main(int argc, char *argv[]) {
             // Present rendered scene
             switch (env->type) {
                 case DLRTEST_TYPE_SOFTWARE: {
-                    SDL_Renderer * r = SDL_GetRenderer(windows[i]);
+                    SDL_Renderer * r = SDL_GetRenderer(envs[i].window);
                     SDL_UpdateTexture(env->inner.sw.bgTex, NULL, env->inner.sw.bg->pixels, env->inner.sw.bg->pitch);
                     SDL_SetRenderDrawColor(r, 0, 0, 0, 0xff);
                     SDL_RenderClear(r);
@@ -675,7 +676,7 @@ int main(int argc, char *argv[]) {
                     SDL_RenderPresent(r);
                 } break;
                 case DLRTEST_TYPE_OPENGL1: {
-                    SDL_GL_SwapWindow(windows[i]);
+                    SDL_GL_SwapWindow(envs[i].window);
                 } break;
             }
         }
