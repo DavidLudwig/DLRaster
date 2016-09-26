@@ -202,31 +202,47 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                 Uint32 incomingC = 0xff000000 | ((nincomingR << 16) & 0x00ff0000) | ((nincomingG << 8) & 0x0000ff00) | (nincomingB & 0x000000ff);
                 //SDL_assert(incomingC == incoming2C);
 
+                double uv = 0.;
+                double uw = 0.;
+                double ftexX = 0.;
+                double ftexY = 0.;
+                int ntexX = 0;
+                int ntexY = 0;
+                Uint32 ntexC = 0;
+                int ntexA = 0;
+                int ntexR = 0;
+                int ntexG = 0;
+                int ntexB = 0;
+                int nfinalA = 0;
+                int nfinalR = 0;
+                int nfinalG = 0;
+                int nfinalB = 0;
+
                 if (state->texture) {
-                    double uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
-                    double uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
-                    double ftexX = (uv * (double)(state->texture->w - 1));
-                    double ftexY = (uw * (double)(state->texture->h - 1));
-                    int ntexX = (int)round(ftexX);
-                    int ntexY = (int)round(ftexY);
+                    uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
+                    uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
+                    ftexX = (uv * (double)(state->texture->w - 1));
+                    ftexY = (uw * (double)(state->texture->h - 1));
+                    ntexX = (int)round(ftexX);
+                    ntexY = (int)round(ftexY);
                     SDL_assert(ntexX >= 0 && ntexX < state->texture->w);
                     SDL_assert(ntexY >= 0 && ntexY < state->texture->h);
 
                     Uint32 ntexC = DLR_GetPixel32(state->texture->pixels, state->texture->pitch, 4, ntexX, ntexY);
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
-                        int   ntexA = (ntexC >> 24) & 0xff;
-                        int   ntexR = (ntexC >> 16) & 0xff;
-                        int   ntexG = (ntexC >>  8) & 0xff;
-                        int   ntexB = (ntexC      ) & 0xff;
+                        ntexA = (ntexC >> 24) & 0xff;
+                        ntexR = (ntexC >> 16) & 0xff;
+                        ntexG = (ntexC >>  8) & 0xff;
+                        ntexB = (ntexC      ) & 0xff;
                         SDL_assert(ntexA >= 0 && ntexA <= 255);
                         SDL_assert(ntexR >= 0 && ntexR <= 255);
                         SDL_assert(ntexG >= 0 && ntexG <= 255);
                         SDL_assert(ntexB >= 0 && ntexB <= 255);
 
-                        int nfinalA = (ntexA * nincomingA) / 255;
-                        int nfinalR = (ntexR * nincomingR) / 255;
-                        int nfinalG = (ntexG * nincomingG) / 255;
-                        int nfinalB = (ntexB * nincomingB) / 255;
+                        nfinalA = (ntexA * nincomingA) / 255;
+                        nfinalR = (ntexR * nincomingR) / 255;
+                        nfinalG = (ntexG * nincomingG) / 255;
+                        nfinalB = (ntexB * nincomingB) / 255;
                         SDL_assert(nfinalA >= 0 && nfinalA <= 255);
                         SDL_assert(nfinalR >= 0 && nfinalR <= 255);
                         SDL_assert(nfinalG >= 0 && nfinalG <= 255);
