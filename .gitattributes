@@ -1,2 +1,3 @@
 * -text
 test/external/** linguist-vendored
+test/*.h linguist-language=C++
