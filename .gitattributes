@@ -1,2 +1,2 @@
 * -text
-test/external/* linguist-vendored
+test/external/** linguist-vendored
