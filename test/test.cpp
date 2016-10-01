@@ -148,6 +148,9 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
     return NULL;
 }
 
+static int lockedX = -1;
+static int lockedY = -1;
+
 static void DLRTest_UpdateWindowTitles()
 {
     const char * compare_name = "";
@@ -172,11 +175,19 @@ static void DLRTest_UpdateWindowTitles()
         } break;
     }
 
+
+#define DLRTEST_IS_LOCKED() (lockedX >= 0 && lockedY >= 0)
+
     int curX, curY;
-    if (SDL_GetMouseFocus()) {
-        SDL_GetMouseState(&curX, &curY);
+    if (DLRTEST_IS_LOCKED()) {
+        curX = lockedX;
+        curY = lockedY;
     } else {
-        curX = curY = -1;
+        if (SDL_GetMouseFocus()) {
+            SDL_GetMouseState(&curX, &curY);
+        } else {
+            curX = curY = -1;
+        }
     }
 
     char window_title[128];
@@ -185,14 +196,16 @@ static void DLRTest_UpdateWindowTitles()
         Uint32 c = (curX < 0) ? 0 : DLR_GetPixel32(bg->pixels, bg->pitch, 4, curX, curY);
         Uint8 a, r, g, b;
         DLR_SplitARGB32(c, a, r, g, b);
+        
+        const char * lockedText = DLRTEST_IS_LOCKED() ? ",locked" : "";
 
         if (envs[i].flags & DLRTEST_ENV_COMPARE) {
-            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s %s p:(%d,%d) rgb:0x%02x%02x%02x a:0x%02x",
-                envs[i].window_title, compare_name, curX, curY,
+            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s %s p:(%d,%d)%s rgb:0x%02x%02x%02x a:0x%02x",
+                envs[i].window_title, compare_name, curX, curY, lockedText,
                 r, g, b, a);
         } else {
-            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s p:(%d,%d) rgb:0x%02x%02x%02x a:0x%02x",
-                envs[i].window_title, curX, curY,
+            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s p:(%d,%d)%s rgb:0x%02x%02x%02x a:0x%02x",
+                envs[i].window_title, curX, curY, lockedText,
                 r, g, b, a);
         }
         window_title[SDL_arraysize(window_title)-1] = '\0';
@@ -471,6 +484,17 @@ void DLR_Test_ProcessEvent(const SDL_Event & e)
         case SDL_MOUSEMOTION: {
             DLRTest_UpdateWindowTitles();
         } break;
+        
+        case SDL_MOUSEBUTTONDOWN: {
+            if (DLRTEST_IS_LOCKED()) {
+                lockedX = -1;
+                lockedY = -1;
+            } else {
+                lockedX = e.button.x;
+                lockedY = e.button.y;
+            }
+            DLRTest_UpdateWindowTitles();
+        } break;
 
         case SDL_KEYDOWN: {
             switch (e.key.keysym.sym) {
@@ -478,6 +502,11 @@ void DLR_Test_ProcessEvent(const SDL_Event & e)
                 case SDLK_ESCAPE: {
                     exit(0);
                 } break;
+                
+                case SDLK_RIGHT: if (DLRTEST_IS_LOCKED()) { lockedX = SDL_min(lockedX + 1, winW - 1); DLRTest_UpdateWindowTitles(); } break;
+                case SDLK_LEFT:  if (DLRTEST_IS_LOCKED()) { lockedX = SDL_max(lockedX - 1,        0); DLRTest_UpdateWindowTitles(); } break;
+                case SDLK_DOWN:  if (DLRTEST_IS_LOCKED()) { lockedY = SDL_min(lockedY + 1, winH - 1); DLRTest_UpdateWindowTitles(); } break;
+                case SDLK_UP:    if (DLRTEST_IS_LOCKED()) { lockedY = SDL_max(lockedY - 1,        0); DLRTest_UpdateWindowTitles(); } break;
 
                 case SDLK_0:
                 case SDLK_1:
