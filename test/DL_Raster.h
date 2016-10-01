@@ -228,7 +228,7 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                     SDL_assert(ntexX >= 0 && ntexX < state->texture->w);
                     SDL_assert(ntexY >= 0 && ntexY < state->texture->h);
 
-                    Uint32 ntexC = DLR_GetPixel32(state->texture->pixels, state->texture->pitch, 4, ntexX, ntexY);
+                    ntexC = DLR_GetPixel32(state->texture->pixels, state->texture->pitch, 4, ntexX, ntexY);
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
                         ntexA = (ntexC >> 24) & 0xff;
                         ntexR = (ntexC >> 16) & 0xff;
