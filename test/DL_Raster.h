@@ -221,10 +221,10 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                 if (state->texture) {
                     uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
                     uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
-                    ftexX = (uv * (double)(state->texture->w - 1));
-                    ftexY = (uw * (double)(state->texture->h - 1));
-                    ntexX = (int)round(ftexX);
-                    ntexY = (int)round(ftexY);
+                    ftexX = (uv * (double)(state->texture->w /* - 1*/));
+                    ftexY = (uw * (double)(state->texture->h /* - 1*/));
+                    ntexX = SDL_min((int)/*round*/(ftexX), state->texture->w - 1);
+                    ntexY = SDL_min((int)/*round*/(ftexY), state->texture->h - 1);
                     SDL_assert(ntexX >= 0 && ntexX < state->texture->w);
                     SDL_assert(ntexY >= 0 && ntexY < state->texture->h);
 
