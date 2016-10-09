@@ -40,8 +40,9 @@ struct DLRTest_Env {
     SDL_Window * window;        // the SDL_Window, set on app-init (to a valid, non-NULL SDL_Window *)
     union {
         struct {
-            SDL_Surface * bg;       // background surface (in main memory)
-            SDL_Texture * bgTex;    // background texture (near/on GPU)
+            SDL_Surface * bg;           // background surface (in main memory)
+            SDL_Texture * bgTex;        // background texture (near/on GPU)
+            SDL_Texture * crosshairs;   // crosshairs texture, to display locked position
         } sw;
         struct {
             SDL_GLContext gl;       // OpenGL context
@@ -702,6 +703,45 @@ int main(int argc, char *argv[]) {
                     SDL_SetRenderDrawColor(r, 0, 0, 0, 0xff);
                     SDL_RenderClear(r);
                     SDL_RenderCopy(r, envs[i].inner.sw.bgTex, NULL, NULL);
+
+                    // Draw locked position
+                    if (DLRTEST_IS_LOCKED()) {
+                        const int w = 15;
+                        const int h = 15;
+                        SDL_Rect box;
+                        if ( ! envs[i].inner.sw.crosshairs) {
+                            SDL_Surface * src = SDL_CreateRGBSurface(0, w, h, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+                            if (src) {
+                                // Clear entire surface:
+                                SDL_FillRect(src, NULL, 0x00000000);
+
+                                // Draw vertical bar:
+                                box = {w/2, 0, 1, h};
+                                SDL_FillRect(src, &box, 0xffff0000);
+
+                                // Draw horizontal bar:
+                                box = {0, h/2, w, 1};
+                                SDL_FillRect(src, &box, 0xffff0000);
+
+                                // Draw outside of inner box:
+                                box = {(w/2)-3, (h/2)-3, 7, 7};
+                                SDL_FillRect(src, &box, 0xffff0000);
+
+                                // Clear inside of inner box:
+                                box = {(w/2)-1, (h/2)-1, 3, 3};
+                                SDL_FillRect(src, &box, 0x00000000);
+
+                                // Convert to texture:
+                                envs[i].inner.sw.crosshairs = SDL_CreateTextureFromSurface(r, src);
+                                SDL_FreeSurface(src);
+                            }
+                        }
+                        if (envs[i].inner.sw.crosshairs) {
+                            box = {lockedX-(w/2), lockedY-(h/2), w, h};
+                            SDL_RenderCopy(r, envs[i].inner.sw.crosshairs, NULL, &box);
+                        }
+                    }
+
                     SDL_RenderPresent(r);
                 } break;
                 case DLRTEST_TYPE_OPENGL1: {
