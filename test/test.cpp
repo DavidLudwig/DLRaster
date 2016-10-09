@@ -77,15 +77,16 @@ static DLRTest_Env envs[] = {
 
 static const int num_envs = SDL_arraysize(envs);
 
-enum DLRTest_Compare {
-    DLRTEST_COMPARE_ARGB = 0,
-    DLRTEST_COMPARE_A,
-    DLRTEST_COMPARE_R,
-    DLRTEST_COMPARE_G,
-    DLRTEST_COMPARE_B,
-    DLRTEST_COMPARE_RGB,
+enum DLRTest_Compare : Uint8 {
+    DLRTEST_COMPARE_A       = (1 << 0),
+    DLRTEST_COMPARE_R       = (1 << 1),
+    DLRTEST_COMPARE_G       = (1 << 2),
+    DLRTEST_COMPARE_B       = (1 << 3),
+    DLRTEST_COMPARE_RGB     = (DLRTEST_COMPARE_R | DLRTEST_COMPARE_G | DLRTEST_COMPARE_B),
+    DLRTEST_COMPARE_ARGB    = (DLRTEST_COMPARE_A | DLRTEST_COMPARE_R | DLRTEST_COMPARE_G | DLRTEST_COMPARE_B),
 };
-static DLRTest_Compare compare = DLRTEST_COMPARE_ARGB;
+static Uint8 compare = DLRTEST_COMPARE_ARGB;
+static int compare_threshold = 1;
 
 PFNGLBLENDFUNCSEPARATEPROC _glBlendFuncSeparate = NULL;
 
@@ -157,25 +158,24 @@ static void DLRTest_UpdateWindowTitles()
     const char * compare_name = "";
     switch (compare) {
         case DLRTEST_COMPARE_ARGB: {
-            compare_name = "ARGB";
+            compare_name = "argb";
         } break;
         case DLRTEST_COMPARE_A: {
-            compare_name = "A";
+            compare_name = "a";
         } break;
         case DLRTEST_COMPARE_R: {
-            compare_name = "R";
+            compare_name = "r";
         } break;
         case DLRTEST_COMPARE_G: {
-            compare_name = "G";
+            compare_name = "g";
         } break;
         case DLRTEST_COMPARE_B: {
-            compare_name = "B";
+            compare_name = "b";
         } break;
         case DLRTEST_COMPARE_RGB: {
-            compare_name = "RGB";
+            compare_name = "rgb";
         } break;
     }
-
 
 #define DLRTEST_IS_LOCKED() (lockedX >= 0 && lockedY >= 0)
 
@@ -198,16 +198,16 @@ static void DLRTest_UpdateWindowTitles()
         Uint8 a, r, g, b;
         DLR_SplitARGB32(c, a, r, g, b);
         
-        const char * lockedText = DLRTEST_IS_LOCKED() ? ",locked" : "";
+        const char * lockedText = DLRTEST_IS_LOCKED() ? ",lock" : "";
 
         if (envs[i].flags & DLRTEST_ENV_COMPARE) {
-            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s %s p:(%d,%d)%s rgb:0x%02x%02x%02x a:0x%02x",
-                envs[i].window_title, compare_name, curX, curY, lockedText,
-                r, g, b, a);
+            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s %s +/-:%d p:%d,%d%s a,rgb:%02x,%02x%02x%02x",
+                envs[i].window_title, compare_name, compare_threshold, curX, curY, lockedText,
+                a, r, g, b);
         } else {
-            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s p:(%d,%d)%s rgb:0x%02x%02x%02x a:0x%02x",
+            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s p:(%d,%d)%s a,rgb:0x%02x,0x%02x%02x%02x",
                 envs[i].window_title, curX, curY, lockedText,
-                r, g, b, a);
+                a, r, g, b);
         }
         window_title[SDL_arraysize(window_title)-1] = '\0';
         SDL_SetWindowTitle(envs[i].window, window_title);
@@ -519,17 +519,22 @@ void DLR_Test_ProcessEvent(const SDL_Event & e)
                 case SDLK_7:
                 case SDLK_8:
                 case SDLK_9: {
-                    char file[32];
-                    for (int i = 0; i < num_envs; ++i) {
-                        SDL_snprintf(file, sizeof(file), "output%s-%d.bmp", SDL_GetKeyName(e.key.keysym.sym), i);
-                        SDL_Surface * output = DLRTest_GetSurfaceForView(&envs[i]);
-                        if (output) {
-                            if (SDL_SaveBMP(output, file) == 0) {
-                                SDL_Log("Saved %s", file);
-                            } else {
-                                SDL_Log("Unable to save %s: \"%s\"", file, SDL_GetError());
+                    if (e.key.keysym.mod & KMOD_CTRL) {
+                        char file[32];
+                        for (int i = 0; i < num_envs; ++i) {
+                            SDL_snprintf(file, sizeof(file), "output%s-%d.bmp", SDL_GetKeyName(e.key.keysym.sym), i);
+                            SDL_Surface * output = DLRTest_GetSurfaceForView(&envs[i]);
+                            if (output) {
+                                if (SDL_SaveBMP(output, file) == 0) {
+                                    SDL_Log("Saved %s", file);
+                                } else {
+                                    SDL_Log("Unable to save %s: \"%s\"", file, SDL_GetError());
+                                }
                             }
                         }
+                    } else {
+                        compare_threshold = SDL_atoi(SDL_GetKeyName(e.key.keysym.sym));
+                        DLRTest_UpdateWindowTitles();
                     }
                 } break;
 
@@ -668,27 +673,21 @@ int main(int argc, char *argv[]) {
                             int ba, br, bg, bb;
                             DLR_SplitARGB32(bc, ba, br, bg, bb);
 
-                            Uint32 dc = 0xffff0000;
-                            switch (compare) {
-                                case DLRTEST_COMPARE_ARGB: {
-                                    dc = (ac == bc) ? 0x00000000 : 0xffffffff;
-                                } break;
-                                case DLRTEST_COMPARE_A: {
-                                    dc = (aa == ba) ? 0x00000000 : 0xffffffff;
-                                } break;
-                                case DLRTEST_COMPARE_R: {
-                                    dc = (ar == br) ? 0x00000000 : 0xffffffff;
-                                } break;
-                                case DLRTEST_COMPARE_G: {
-                                    dc = (ag == bg) ? 0x00000000 : 0xffffffff;
-                                } break;
-                                case DLRTEST_COMPARE_B: {
-                                    dc = (ab == bb) ? 0x00000000 : 0xffffffff;
-                                } break;
-                                case DLRTEST_COMPARE_RGB: {
-                                    dc = (ar == br && ag == bg && ab == bb) ? 0x00000000 : 0xffffffff;
-                                } break;
+                            int beyond = 0;
+                            if (compare & DLRTEST_COMPARE_A) {
+                                beyond |= abs(aa - ba) > compare_threshold;
                             }
+                            if (compare & DLRTEST_COMPARE_R) {
+                                beyond |= abs(ar - br) > compare_threshold;
+                            }
+                            if (compare & DLRTEST_COMPARE_G) {
+                                beyond |= abs(ag - bg) > compare_threshold;
+                            }
+                            if (compare & DLRTEST_COMPARE_B) {
+                                beyond |= abs(ab - bb) > compare_threshold;
+                            }
+
+                            Uint32 dc = beyond ? 0xffffffff : 0x00000000;
                             DLR_SetPixel32(dest->pixels, dest->pitch, 4, x, y, dc);
                         }
                     }
