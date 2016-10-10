@@ -455,7 +455,7 @@ void DLRTest_DrawScene(DLRTest_Env * env)
 
         double originX = 200.51;
         double originY = 20.;
-        struct { float a, r, g, b; } c[] = {
+        struct { double a, r, g, b; } c[] = {
 #if 1    // multi-color
             {   1,   1, 0.3, 0.3},  // left  top
             {   1, 0.3,   1, 0.3},  // right top
@@ -570,7 +570,7 @@ void DLR_Test_ProcessEvent(const SDL_Event & e)
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int, char **) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("Can't init SDL: %s", SDL_GetError());
         return -1;
@@ -595,7 +595,7 @@ int main(int argc, char *argv[]) {
         }
         switch (envs[i].type) {
             case DLRTEST_TYPE_SOFTWARE: {
-                SDL_Renderer * r = SDL_CreateRenderer(envs[i].window, 0, -1);
+                SDL_Renderer * r = SDL_CreateRenderer(envs[i].window, -1, 0);
                 if ( ! r) {
                     SDL_Log("SDL_CreateRenderer failed, err=%s", SDL_GetError());
                     return -1;
