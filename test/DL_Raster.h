@@ -185,12 +185,12 @@ static Uint32 DLR_Join(DLR_Color<Uint8> c) {
     return DLR_JoinARGB32(c.A, c.R, c.G, c.B);
 }
 
-static DLR_Color<double> DLR_Round(DLR_Color<double> c) {
+static DLR_Color<Uint8> DLR_Round(DLR_Color<double> c) {
     return {
-        round(c.A),
-        round(c.R),
-        round(c.G),
-        round(c.B)
+        (Uint8)(c.A + 0.5),
+        (Uint8)(c.R + 0.5),
+        (Uint8)(c.G + 0.5),
+        (Uint8)(c.B + 0.5),
     };
 }
 
