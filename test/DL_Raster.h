@@ -179,10 +179,10 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                 double fincomingR = (lambda0 * v0.r) + (lambda1 * v1.r) + (lambda2 * v2.r);
                 double fincomingG = (lambda0 * v0.g) + (lambda1 * v1.g) + (lambda2 * v2.g);
                 double fincomingB = (lambda0 * v0.b) + (lambda1 * v1.b) + (lambda2 * v2.b);
-                int nincomingA = (int)round(fincomingA * 255.0);
-                int nincomingR = (int)round(fincomingR * 255.0);
-                int nincomingG = (int)round(fincomingG * 255.0);
-                int nincomingB = (int)round(fincomingB * 255.0);
+                int nincomingA = (int)round(fincomingA * 255.);
+                int nincomingR = (int)round(fincomingR * 255.);
+                int nincomingG = (int)round(fincomingG * 255.);
+                int nincomingB = (int)round(fincomingB * 255.);
                 SDL_assert(nincomingA >= 0 && nincomingA <= 255);
                 SDL_assert(nincomingR >= 0 && nincomingR <= 255);
                 SDL_assert(nincomingG >= 0 && nincomingG <= 255);
