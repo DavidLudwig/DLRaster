@@ -283,7 +283,7 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                         Uint32 ndestC = DLR_GetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y);
                         int ndestA, ndestR, ndestG, ndestB;
                         DLR_SplitARGB32(ndestC, ndestA, ndestR, ndestG, ndestB);
-                        ndestA = 255;
+                        //ndestA = 255;
                         float fdestA = (float)ndestA / 255.f;
                         float fdestR = (float)ndestR / 255.f;
                         float fdestG = (float)ndestG / 255.f;
