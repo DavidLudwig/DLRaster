@@ -146,8 +146,65 @@ struct DLR_Color {
     DLR_ColorComponent R;
     DLR_ColorComponent G;
     DLR_ColorComponent B;
+
+    DLR_Color() = default;
+
+    DLR_Color(DLR_ColorComponent a_, DLR_ColorComponent r_, DLR_ColorComponent g_, DLR_ColorComponent b_) {
+        A = a_;
+        R = r_;
+        G = g_;
+        B = b_;
+    }
+
+    DLR_Color(Uint32 argb) {
+        A = (argb >> 24) & 0xff;
+        R = (argb >> 16) & 0xff;
+        G = (argb >>  8) & 0xff;
+        B = (argb      ) & 0xff;
+    }
+
+    template <typename DLR_DestColorComponent>
+    explicit DLR_Color(DLR_Color<DLR_DestColorComponent> other) {
+        A = (DLR_ColorComponent) other.A;
+        R = (DLR_ColorComponent) other.R;
+        G = (DLR_ColorComponent) other.G;
+        B = (DLR_ColorComponent) other.B;
+    }
+
+    DLR_Color operator + (DLR_Color other) const { return { A + other.A, R + other.R, G + other.G, B + other.B }; }
+    DLR_Color operator * (DLR_Color other) const { return { A * other.A, R * other.R, G * other.G, B * other.B }; }
+
+    template <typename DLR_Coefficient>
+    DLR_Color operator * (DLR_Coefficient coeff) const { return {A * coeff, R * coeff, G * coeff, B * coeff}; }
+
+    template <typename DLR_Coefficient>
+    DLR_Color operator / (DLR_Coefficient coeff) const { return {A / coeff, R / coeff, G / coeff, B / coeff}; }
 };
 
+static Uint32 DLR_Join(DLR_Color<Uint8> c) {
+    return DLR_JoinARGB32(c.A, c.R, c.G, c.B);
+}
+
+static DLR_Color<double> DLR_Round(DLR_Color<double> c) {
+    return {
+        round(c.A),
+        round(c.R),
+        round(c.G),
+        round(c.B)
+    };
+}
+
+#define DLR_AssertValidColor8888(C) \
+    SDL_assert(C.A >= 0 && C.A <= 255); \
+    SDL_assert(C.R >= 0 && C.R <= 255); \
+    SDL_assert(C.G >= 0 && C.G <= 255); \
+    SDL_assert(C.B >= 0 && C.B <= 255);
+
+DLR_Color<double> & DLR_VertexColor(DLR_Vertex & v) {
+    double * cptr1 = &(v.a);
+    DLR_Color<double> * cptr2 = (DLR_Color<double> *) cptr1;
+    return * cptr2;
+}
 
 void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
 {
@@ -184,37 +241,23 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda1, edge1.x, edge1.y);
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda2, edge2.x, edge2.y);
             if (overlaps) {
-                DLR_Color<double> fincoming = {
-                    (v0.a * lambda0) + (v1.a * lambda1) + (v2.a * lambda2),
-                    (v0.r * lambda0) + (v1.r * lambda1) + (v2.r * lambda2),
-                    (v0.g * lambda0) + (v1.g * lambda1) + (v2.g * lambda2),
-                    (v0.b * lambda0) + (v1.b * lambda1) + (v2.b * lambda2),
-                };
-                DLR_Color<int> nincoming = {
-                    (int)round(fincoming.A * 255.),
-                    (int)round(fincoming.R * 255.),
-                    (int)round(fincoming.G * 255.),
-                    (int)round(fincoming.B * 255.),
-                };
-                SDL_assert(nincoming.A >= 0 && nincoming.A <= 255);
-                SDL_assert(nincoming.R >= 0 && nincoming.R <= 255);
-                SDL_assert(nincoming.G >= 0 && nincoming.G <= 255);
-                SDL_assert(nincoming.B >= 0 && nincoming.B <= 255);
+                DLR_Color<double> fincomingC = \
+                    (DLR_VertexColor(v0) * lambda0) +
+                    (DLR_VertexColor(v1) * lambda1) +
+                    (DLR_VertexColor(v2) * lambda2);
+                DLR_Color<Uint8> nincomingC = (DLR_Color<Uint8>) DLR_Round(fincomingC * 255.);
+                DLR_AssertValidColor8888(nincomingC);
 
-                Uint32 nfinalC = 0xffff00ff;  // default to ugly color
-                Uint32 nincomingC = ((nincoming.A << 24) & 0xff000000) | ((nincoming.R << 16) & 0x00ff0000) | ((nincoming.G << 8) & 0x0000ff00) | (nincoming.B & 0x000000ff);
-
+                DLR_Color<Uint8> nfinalC = {0xff, 0xff, 0x00, 0xff};  // default to ugly color
                 double uv = 0.;
                 double uw = 0.;
                 double ftexX = 0.;
                 double ftexY = 0.;
                 int ntexX = 0;
                 int ntexY = 0;
-                Uint32 ntexC = 0;
-                DLR_Color<int> ntex = {0, 0, 0, 0};
-                DLR_Color<double> ftex = {0., 0., 0., 0.};
-                DLR_Color<int> nfinal = {0, 0, 0, 0};
-                DLR_Color<double> ffinal = {0., 0., 0., 0.};
+                DLR_Color<Uint8> ntexC = {0, 0, 0, 0};
+                DLR_Color<double> ftexC = {0., 0., 0., 0.};
+                DLR_Color<double> ffinalC = {0., 0., 0., 0.};
                 
                 if (state->texture) {
                     uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
@@ -225,68 +268,33 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                     ntexY = SDL_min((int)/*round*/(ftexY), state->texture->h - 1);
                     SDL_assert(ntexX >= 0 && ntexX < state->texture->w);
                     SDL_assert(ntexY >= 0 && ntexY < state->texture->h);
-
                     ntexC = DLR_GetPixel32(state->texture->pixels, state->texture->pitch, 4, ntexX, ntexY);
-                    ntex.A = (ntexC >> 24) & 0xff;
-                    ntex.R = (ntexC >> 16) & 0xff;
-                    ntex.G = (ntexC >>  8) & 0xff;
-                    ntex.B = (ntexC      ) & 0xff;
-                    SDL_assert(ntex.A >= 0 && ntex.A <= 255);
-                    SDL_assert(ntex.R >= 0 && ntex.R <= 255);
-                    SDL_assert(ntex.G >= 0 && ntex.G <= 255);
-                    SDL_assert(ntex.B >= 0 && ntex.B <= 255);
-                    ftex.A = (double)ntex.A / 255.;
-                    ftex.R = (double)ntex.R / 255.;
-                    ftex.G = (double)ntex.G / 255.;
-                    ftex.B = (double)ntex.B / 255.;
+                    ftexC = (DLR_Color<double>)ntexC / 255.;
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
-                        ffinal.A = (ftex.A * fincoming.A);
-                        ffinal.R = (ftex.R * fincoming.R);
-                        ffinal.G = (ftex.G * fincoming.G);
-                        ffinal.B = (ftex.B * fincoming.B);
-                        nfinal.A = (int)round(ffinal.A * 255.);
-                        nfinal.R = (int)round(ffinal.R * 255.);
-                        nfinal.G = (int)round(ffinal.G * 255.);
-                        nfinal.B = (int)round(ffinal.B * 255.);
-                        SDL_assert(nfinal.A >= 0 && nfinal.A <= 255);
-                        SDL_assert(nfinal.R >= 0 && nfinal.R <= 255);
-                        SDL_assert(nfinal.G >= 0 && nfinal.G <= 255);
-                        SDL_assert(nfinal.B >= 0 && nfinal.B <= 255);
-                        nfinalC = \
-                            (nfinal.A << 24) |
-                            (nfinal.R << 16) |
-                            (nfinal.G <<  8) |
-                            (nfinal.B      );
+                        ffinalC = ftexC * fincomingC;
+                        nfinalC = (DLR_Color<Uint8>) DLR_Round(ffinalC * 255.);
+                        DLR_AssertValidColor8888(nfinalC);
                     } else {
                         nfinalC = ntexC;
-                        ffinal = ftex;
+                        ffinalC = ftexC;
                     }
                 } else {
                     // texture is NULL
                     SDL_assert(state->texture == NULL);
                     nfinalC = nincomingC;
-                    ffinal = fincoming;
+                    ffinalC = fincomingC;
                 } // if tex ... ; else ...
 
                 // color is ARGB
                 switch (state->blendMode) {
                     case DLR_BLENDMODE_NONE: {
-                        DLR_SetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y, nfinalC);
+                        DLR_SetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y, DLR_Join(nfinalC));
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
-                        DLR_Color<double> fsrc = ffinal;
-
-                        Uint32 ndestC = DLR_GetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y);
-                        DLR_Color<int> ndest;
-                        DLR_SplitARGB32(ndestC, ndest.A, ndest.R, ndest.G, ndest.B);
-                        //ndestA = 255;
-                        DLR_Color<double> fdest = {
-                            (double)ndest.A / 255.,
-                            (double)ndest.R / 255.,
-                            (double)ndest.G / 255.,
-                            (double)ndest.B / 255.,
-                        };
+                        DLR_Color<double> fsrc = ffinalC;
+                        DLR_Color<Uint8> ndest = (DLR_Color<Uint8>) DLR_GetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y);
+                        DLR_Color<double> fdest = (DLR_Color<double>)ndest / 255.;
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
                         fdest.R = (fsrc.R * fsrc.A) + (fdest.R * (1. - fsrc.A));
@@ -296,18 +304,9 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                         // dstA = srcA + (dstA * (1-srcA))
                         fdest.A = fsrc.A + (fdest.A * (1. - fsrc.A));
 
-                        ndest.A = (int)round(fdest.A * 255.);
-                        ndest.R = (int)round(fdest.R * 255.);
-                        ndest.G = (int)round(fdest.G * 255.);
-                        ndest.B = (int)round(fdest.B * 255.);
-                        SDL_assert(ndest.A >= 0 && ndest.A <= 255);
-                        SDL_assert(ndest.R >= 0 && ndest.R <= 255);
-                        SDL_assert(ndest.G >= 0 && ndest.G <= 255);
-                        SDL_assert(ndest.B >= 0 && ndest.B <= 255);
-
-                        nfinalC = DLR_JoinARGB32(ndest.A, ndest.R, ndest.G, ndest.B);
-
-                        DLR_SetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y, nfinalC);
+                        ndest = (DLR_Color<Uint8>) DLR_Round(fdest * 255.);
+                        DLR_AssertValidColor8888(ndest);
+                        DLR_SetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y, DLR_Join(ndest));
                     } break;
                 }
             } // if (overlaps)
