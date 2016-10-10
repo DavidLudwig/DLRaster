@@ -348,7 +348,7 @@ void DLRTest_DrawScene(DLRTest_Env * env)
     //
     // Multi-color triangle
     //
-    if (0) {
+    if (1) {
         static DLR_State state;
         static int didInitState = 0;
         if (!didInitState) {
@@ -360,7 +360,7 @@ void DLRTest_DrawScene(DLRTest_Env * env)
         double originX = 20;
         double originY = 20;
         struct { float a, r, g, b; } c[] = {
-#if 0
+#if 1
             {1, 1, 0, 0},
             {1, 0, 1, 0},
             {1, 0, 0, 1},
@@ -387,22 +387,33 @@ void DLRTest_DrawScene(DLRTest_Env * env)
         if (!didInitState) {
             memset(&state, 0, sizeof(state));
 
-            const int whichTex = 3; // 0: none, 1:image, 2:all-white, 3:vertical gradient, 4:horizontal gradient
-            switch (whichTex) {
-                case 0: {
+            enum DLRTest_TextureType {
+                DLRTEST_TEXTURE_FROM_IMAGE          = 0,
+                DLRTEST_TEXTURE_NONE                = 1,
+                DLRTEST_TEXTURE_ALL_WHITE           = 2,
+                DLRTEST_TEXTURE_VERTICAL_GRADIENT   = 3,
+                DLRTEST_TEXTURE_HORIZONTAL_GRADIENT = 4,
+            };
+            static const DLRTest_TextureType textureType = DLRTEST_TEXTURE_FROM_IMAGE;
+            //static const DLRTest_TextureType textureType = (DLRTest_TextureType) 1;
+            switch (textureType) {
+                case DLRTEST_TEXTURE_FROM_IMAGE: {
+                    state.texture = SDL_LoadBMP("texture.bmp");
+                    if ( ! state.texture) {
+                        state.texture = SDL_LoadBMP("../../texture.bmp");   // for OSX, via test-DLRaster Xcode project
+                    }
+                } break;
+
+                case DLRTEST_TEXTURE_NONE: {
                     state.texture = NULL;
                 } break;
 
-                case 1: {
-                    state.texture = SDL_LoadBMP("texture.bmp");
-                } break;
-
-                case 2: {
+                case DLRTEST_TEXTURE_ALL_WHITE: {
                     state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
                     SDL_FillRect(state.texture, NULL, 0x88888888);
                 } break;
 
-                case 3: {
+                case DLRTEST_TEXTURE_VERTICAL_GRADIENT: {
                     state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
                     for (int y = 0; y < 256; ++y) {
                         for (int x = 0; x < 256; ++x) {
@@ -413,7 +424,7 @@ void DLRTest_DrawScene(DLRTest_Env * env)
                     }
                 } break;
 
-                case 4: {
+                case DLRTEST_TEXTURE_HORIZONTAL_GRADIENT: {
                     state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
                     for (int y = 0; y < 256; ++y) {
                         for (int x = 0; x < 256; ++x) {
@@ -423,9 +434,6 @@ void DLRTest_DrawScene(DLRTest_Env * env)
                     }
                 } break;
             }
-
-
-            //SDL_FillRect(state.texture, NULL, 0x770000ff);
 
             didInitState = 1;
         }
@@ -442,17 +450,19 @@ void DLRTest_DrawScene(DLRTest_Env * env)
         }
 
         double originX = 200.51;
-        //double originX = 200.503913879394545460853;   // SHOW
-        //double originX = 200.503913879394545460854;   // ???
-        //double originX = 200.503913879394545460855;   // NO SHOW
         double originY = 20.;
         struct { float a, r, g, b; } c[] = {
-#if 0
+#if 1    // multi-color
             {   1,   1, 0.3, 0.3},  // left  top
             {   1, 0.3,   1, 0.3},  // right top
             {   1, 0.3, 0.3,   1},  // right bottom
             { 0.5,   1,   1,   1},  // left  bottom
-#else
+#elif 0  // this one is slightly-off in OpenGL
+            { 0.5,   0,   1,   0},  // left  top
+            { 0.5,   1,   0,   0},  // right top (X)
+            { 0.5,   1,   0,   0},  // right bottom
+            { 0.5,   0,   1,   0},  // left  bottom
+#else    // all white
             {   1,   1,   1,   1},  // left  top
             {   1,   1,   1,   1},  // right top
             {   1,   1,   1,   1},  // right bottom
