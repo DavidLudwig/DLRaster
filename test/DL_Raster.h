@@ -109,16 +109,7 @@ void DLR_CalculateBarycentricCoordinates(DLR_Vertex p, DLR_Vertex a, DLR_Vertex 
         ((c.y - a.y) * (p.x - c.x) + (a.x - c.x) * (p.y - c.y)) /
         ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
 
-    *lambdaC =
-        ((a.y - b.y) * (p.x - a.x) + (b.x - a.x) * (p.y - a.y)) /
-        ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
-
-    //double lambdaC2 = 
-    //    1.f - *lambdaA - *lambdaB;
-    //if (abs(*lambdaC - lambdaC2) >= 0.000000000000001) { // add an extra 0 to the right of the . to make a failed assertion
-    //    SDL_Log("inequal: %f  %f", *lambdaC, lambdaC2);
-    //    SDL_assert(false);
-    //}
+    *lambdaC = 1. - *lambdaA - *lambdaB;
 }
 
 static inline bool DLR_WithinEdgeAreaClockwise(double barycentric, double edgeX, double edgeY)
