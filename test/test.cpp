@@ -284,7 +284,11 @@ void DLRTest_DrawTriangles_OpenGL1(
 
     glBegin(GL_TRIANGLES);
     for (size_t i = 0; i < vertexCount; ++i) {
-        glColor4d(vertices[i].r, vertices[i].g, vertices[i].b, vertices[i].a);
+        if (state->textureModulate == DLR_TEXTUREMODULATE_COLOR || state->texture == NULL) {
+            glColor4d(vertices[i].r, vertices[i].g, vertices[i].b, vertices[i].a);
+        } else {
+            glColor4d(1., 1., 1., 1.);
+        }
         glTexCoord2d(vertices[i].uv, vertices[i].uw);
         glVertex2d(vertices[i].x, vertices[i].y);
     }
