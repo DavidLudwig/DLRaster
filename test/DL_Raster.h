@@ -199,7 +199,7 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                 // TODO: see if &'s are necessary, in practice
                 //Uint32 incomingC = 0xff000000 | (nincomingR << 16) | (nincomingG << 8) | nincomingB;
                 
-                Uint32 incomingC = 0xff000000 | ((nincomingR << 16) & 0x00ff0000) | ((nincomingG << 8) & 0x0000ff00) | (nincomingB & 0x000000ff);
+                Uint32 incomingC = ((nincomingA << 24) & 0xff000000) | ((nincomingR << 16) & 0x00ff0000) | ((nincomingG << 8) & 0x0000ff00) | (nincomingB & 0x000000ff);
                 //SDL_assert(incomingC == incoming2C);
 
                 double uv = 0.;
