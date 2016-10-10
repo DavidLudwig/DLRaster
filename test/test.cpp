@@ -90,7 +90,7 @@ static int compare_threshold = 1;
 
 PFNGLBLENDFUNCSEPARATEPROC _glBlendFuncSeparate = NULL;
 
-#define DLRTest_CheckGL() { GLenum glerr = glGetError(); SDL_assert(glerr == GL_NO_ERROR); }
+#define DLRTest_CheckGL() { GLenum glerr = glGetError(); (void)glerr; SDL_assert(glerr == GL_NO_ERROR); }
 
 SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
 {
