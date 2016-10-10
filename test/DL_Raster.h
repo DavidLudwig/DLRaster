@@ -226,19 +226,19 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                     SDL_assert(ntexY >= 0 && ntexY < state->texture->h);
 
                     ntexC = DLR_GetPixel32(state->texture->pixels, state->texture->pitch, 4, ntexX, ntexY);
+                    ntexA = (ntexC >> 24) & 0xff;
+                    ntexR = (ntexC >> 16) & 0xff;
+                    ntexG = (ntexC >>  8) & 0xff;
+                    ntexB = (ntexC      ) & 0xff;
+                    SDL_assert(ntexA >= 0 && ntexA <= 255);
+                    SDL_assert(ntexR >= 0 && ntexR <= 255);
+                    SDL_assert(ntexG >= 0 && ntexG <= 255);
+                    SDL_assert(ntexB >= 0 && ntexB <= 255);
+                    ftexA = (double)ntexA / 255.;
+                    ftexR = (double)ntexR / 255.;
+                    ftexG = (double)ntexG / 255.;
+                    ftexB = (double)ntexB / 255.;
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
-                        ntexA = (ntexC >> 24) & 0xff;
-                        ntexR = (ntexC >> 16) & 0xff;
-                        ntexG = (ntexC >>  8) & 0xff;
-                        ntexB = (ntexC      ) & 0xff;
-                        SDL_assert(ntexA >= 0 && ntexA <= 255);
-                        SDL_assert(ntexR >= 0 && ntexR <= 255);
-                        SDL_assert(ntexG >= 0 && ntexG <= 255);
-                        SDL_assert(ntexB >= 0 && ntexB <= 255);
-                        ftexA = (double)ntexA / 255.0;
-                        ftexR = (double)ntexR / 255.0;
-                        ftexG = (double)ntexG / 255.0;
-                        ftexB = (double)ntexB / 255.0;
                         ffinalA = (ftexA * fincomingA);
                         ffinalR = (ftexR * fincomingR);
                         ffinalG = (ftexG * fincomingG);
@@ -258,11 +258,19 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                             (nfinalB      );
                     } else {
                         nfinalC = ntexC;
+                        ffinalA = ftexA;
+                        ffinalR = ftexR;
+                        ffinalG = ftexG;
+                        ffinalB = ftexB;
                     }
                 } else {
                     // texture is NULL
                     SDL_assert(state->texture == NULL);
                     nfinalC = nincomingC;
+                    ffinalA = fincomingA;
+                    ffinalR = fincomingR;
+                    ffinalG = fincomingG;
+                    ffinalB = fincomingB;
                 } // if tex ... ; else ...
 
                 // color is ARGB
@@ -272,13 +280,10 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
-                        int nsrcA, nsrcR, nsrcG, nsrcB;
-
-                        DLR_SplitARGB32(nfinalC, nsrcA, nsrcR, nsrcG, nsrcB);
-                        double fsrcA = (double)nsrcA / 255.;
-                        double fsrcR = (double)nsrcR / 255.;
-                        double fsrcG = (double)nsrcG / 255.;
-                        double fsrcB = (double)nsrcB / 255.;
+                        double fsrcA = ffinalA;
+                        double fsrcR = ffinalR;
+                        double fsrcG = ffinalG;
+                        double fsrcB = ffinalB;
 
                         Uint32 ndestC = DLR_GetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y);
                         int ndestA, ndestR, ndestG, ndestB;
