@@ -167,15 +167,9 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
             p.y += 0.5;
             DLR_CalculateBarycentricCoordinates(p, v0, v1, v2, &lambda0, &lambda1, &lambda2);
 
-//            if (lambda0 >= 0.f && lambda1 >= 0.f && lambda2 >= 0.f) {
-
-            if (x == 23 && y == 26) {
-                int foo = 1;
-            }
-
-            DLR_Vertex edge0 = {v2.x-v1.x/*-v2.x*/, v2.y-v1.y/*-v2.y*/}; // v2 - v1
-            DLR_Vertex edge1 = {v0.x-v2.x/*-v0.x*/, v0.y-v2.y/*-v0.y*/}; // v0 - v2
-            DLR_Vertex edge2 = {v1.x-v0.x/*-v1.x*/, v1.y-v0.y/*-v1.y*/}; // v1 - v0
+            DLR_Vertex edge0 = {v2.x-v1.x, v2.y-v1.y}; // v2 - v1
+            DLR_Vertex edge1 = {v0.x-v2.x, v0.y-v2.y}; // v0 - v2
+            DLR_Vertex edge2 = {v1.x-v0.x, v1.y-v0.y}; // v1 - v0
             bool overlaps = true;
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda0, edge0.x, edge0.y);
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda1, edge1.x, edge1.y);
@@ -195,12 +189,7 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                 SDL_assert(nincomingB >= 0 && nincomingB <= 255);
 
                 Uint32 nfinalC = 0xffff00ff;  // default to ugly color
-
-                // TODO: see if &'s are necessary, in practice
-                //Uint32 incomingC = 0xff000000 | (nincomingR << 16) | (nincomingG << 8) | nincomingB;
-                
-                Uint32 incomingC = ((nincomingA << 24) & 0xff000000) | ((nincomingR << 16) & 0x00ff0000) | ((nincomingG << 8) & 0x0000ff00) | (nincomingB & 0x000000ff);
-                //SDL_assert(incomingC == incoming2C);
+                Uint32 nincomingC = ((nincomingA << 24) & 0xff000000) | ((nincomingR << 16) & 0x00ff0000) | ((nincomingG << 8) & 0x0000ff00) | (nincomingB & 0x000000ff);
 
                 double uv = 0.;
                 double uw = 0.;
@@ -213,11 +202,19 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                 int ntexR = 0;
                 int ntexG = 0;
                 int ntexB = 0;
+                double ftexA = 0.;
+                double ftexR = 0.;
+                double ftexG = 0.;
+                double ftexB = 0.;
                 int nfinalA = 0;
                 int nfinalR = 0;
                 int nfinalG = 0;
                 int nfinalB = 0;
-
+                double ffinalA = 0.;
+                double ffinalR = 0.;
+                double ffinalG = 0.;
+                double ffinalB = 0.;
+                
                 if (state->texture) {
                     uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
                     uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
@@ -238,11 +235,18 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                         SDL_assert(ntexR >= 0 && ntexR <= 255);
                         SDL_assert(ntexG >= 0 && ntexG <= 255);
                         SDL_assert(ntexB >= 0 && ntexB <= 255);
-
-                        nfinalA = (ntexA * nincomingA) / 255;
-                        nfinalR = (ntexR * nincomingR) / 255;
-                        nfinalG = (ntexG * nincomingG) / 255;
-                        nfinalB = (ntexB * nincomingB) / 255;
+                        ftexA = (double)ntexA / 255.0;
+                        ftexR = (double)ntexR / 255.0;
+                        ftexG = (double)ntexG / 255.0;
+                        ftexB = (double)ntexB / 255.0;
+                        ffinalA = (ftexA * fincomingA);
+                        ffinalR = (ftexR * fincomingR);
+                        ffinalG = (ftexG * fincomingG);
+                        ffinalB = (ftexB * fincomingB);
+                        nfinalA = (int)round(ffinalA * 255.);
+                        nfinalR = (int)round(ffinalR * 255.);
+                        nfinalG = (int)round(ffinalG * 255.);
+                        nfinalB = (int)round(ffinalB * 255.);
                         SDL_assert(nfinalA >= 0 && nfinalA <= 255);
                         SDL_assert(nfinalR >= 0 && nfinalR <= 255);
                         SDL_assert(nfinalG >= 0 && nfinalG <= 255);
@@ -258,7 +262,7 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                 } else {
                     // texture is NULL
                     SDL_assert(state->texture == NULL);
-                    nfinalC = incomingC;
+                    nfinalC = nincomingC;
                 } // if tex ... ; else ...
 
                 // color is ARGB
@@ -307,7 +311,7 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                         DLR_SetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y, nfinalC);
                     } break;
                 }
-            }
+            } // if (overlaps)
         }
     }
 }
