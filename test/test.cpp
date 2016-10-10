@@ -61,6 +61,8 @@ static DLRTest_Env envs[] = {
         0, 60,              // window initial X and Y
         0,
     },
+
+#if 0   // turn on to compare DLRaster with OpenGL
     {
         DLRTEST_TYPE_OPENGL1,
         "DLRTest OGL",
@@ -73,6 +75,7 @@ static DLRTest_Env envs[] = {
         (winW + 10) * 2, 60,            // window initial X and Y
         DLRTEST_ENV_COMPARE,
     },
+#endif
 };
 
 static const int num_envs = SDL_arraysize(envs);
@@ -636,7 +639,23 @@ int main(int, char **) {
     } // end of init loop
     DLRTest_UpdateWindowTitles();
 
+    // Performance measurement stuff:
+    const int numTicksToEachMeasurement = 500;
+    int numTicksToMeasurement = numTicksToEachMeasurement;
+    Uint64 lastMeasurement = SDL_GetPerformanceCounter();
+
+    // Render loop: process events, then draw.  Repeat until app is done.
     while (1) {
+        numTicksToMeasurement--;
+        if (numTicksToMeasurement == 0) {
+            Uint64 now = SDL_GetPerformanceCounter();
+            double dtInMS = (double)((now - lastMeasurement) * 1000) / SDL_GetPerformanceFrequency();
+            double fps = (double)numTicksToEachMeasurement / (dtInMS / 1000.0);
+            SDL_Log("%f ms for %d ticks ; %f FPS\n", dtInMS, numTicksToEachMeasurement, fps);
+            lastMeasurement = now;
+            numTicksToMeasurement = numTicksToEachMeasurement;
+        }
+
         // Process events
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
