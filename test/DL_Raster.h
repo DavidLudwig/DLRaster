@@ -275,32 +275,32 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                         int nsrcA, nsrcR, nsrcG, nsrcB;
 
                         DLR_SplitARGB32(nfinalC, nsrcA, nsrcR, nsrcG, nsrcB);
-                        float fsrcA = (float)nsrcA / 255.f;
-                        float fsrcR = (float)nsrcR / 255.f;
-                        float fsrcG = (float)nsrcG / 255.f;
-                        float fsrcB = (float)nsrcB / 255.f;
+                        double fsrcA = (double)nsrcA / 255.;
+                        double fsrcR = (double)nsrcR / 255.;
+                        double fsrcG = (double)nsrcG / 255.;
+                        double fsrcB = (double)nsrcB / 255.;
 
                         Uint32 ndestC = DLR_GetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y);
                         int ndestA, ndestR, ndestG, ndestB;
                         DLR_SplitARGB32(ndestC, ndestA, ndestR, ndestG, ndestB);
                         //ndestA = 255;
-                        float fdestA = (float)ndestA / 255.f;
-                        float fdestR = (float)ndestR / 255.f;
-                        float fdestG = (float)ndestG / 255.f;
-                        float fdestB = (float)ndestB / 255.f;
+                        double fdestA = (double)ndestA / 255.;
+                        double fdestR = (double)ndestR / 255.;
+                        double fdestG = (double)ndestG / 255.;
+                        double fdestB = (double)ndestB / 255.;
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-                        fdestR = (fsrcR * fsrcA) + (fdestR * (1.f - fsrcA));
-                        fdestG = (fsrcG * fsrcA) + (fdestG * (1.f - fsrcA));
-                        fdestB = (fsrcB * fsrcA) + (fdestB * (1.f - fsrcA));
+                        fdestR = (fsrcR * fsrcA) + (fdestR * (1. - fsrcA));
+                        fdestG = (fsrcG * fsrcA) + (fdestG * (1. - fsrcA));
+                        fdestB = (fsrcB * fsrcA) + (fdestB * (1. - fsrcA));
 
                         // dstA = srcA + (dstA * (1-srcA))
-                        fdestA = fsrcA + (fdestA * (1.f - fsrcA));
+                        fdestA = fsrcA + (fdestA * (1. - fsrcA));
 
-                        ndestA = (int)round(fdestA * 255.f);
-                        ndestR = (int)round(fdestR * 255.f);
-                        ndestG = (int)round(fdestG * 255.f);
-                        ndestB = (int)round(fdestB * 255.f);
+                        ndestA = (int)round(fdestA * 255.);
+                        ndestR = (int)round(fdestR * 255.);
+                        ndestG = (int)round(fdestG * 255.);
+                        ndestB = (int)round(fdestB * 255.);
                         SDL_assert(ndestA >= 0 && ndestA <= 255);
                         SDL_assert(ndestR >= 0 && ndestR <= 255);
                         SDL_assert(ndestG >= 0 && ndestG <= 255);
