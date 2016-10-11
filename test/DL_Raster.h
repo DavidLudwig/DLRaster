@@ -99,7 +99,15 @@ DLR_EXTERN_C void DLR_Clear(
 //    return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
 //}
 
-static void DLR_CalculateBarycentricCoordinates(DLR_Vertex p, DLR_Vertex a, DLR_Vertex b, DLR_Vertex c, DLR_Float *lambdaA, DLR_Float *lambdaB, DLR_Float *lambdaC) {
+static void DLR_CalculateBarycentricCoordinates(
+    DLR_Vertex p,
+    DLR_Vertex a,
+    DLR_Vertex b,
+    DLR_Vertex c,
+    DLR_Float *lambdaA,
+    DLR_Float *lambdaB,
+    DLR_Float *lambdaC)
+{
     *lambdaA =
         ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) /
         ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
