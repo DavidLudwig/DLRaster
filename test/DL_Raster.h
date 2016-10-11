@@ -113,7 +113,9 @@ static void DLR_CalculateBarycentricCoordinates(DLR_Vertex p, DLR_Vertex a, DLR_
 
 static inline bool DLR_WithinEdgeAreaClockwise(DLR_Float barycentric, DLR_Float edgeX, DLR_Float edgeY)
 {
-    if (barycentric == 0) {
+    if (barycentric < 0) {
+        return false;
+    } else if (barycentric == 0) {
         if (edgeY == 0 && edgeX > 0) {
             return true;
         } else if (edgeY < 0) {
@@ -122,11 +124,7 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Float barycentric, DLR_Float 
             return false;
         }
     } else {
-        if (barycentric > 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return true;
     }
 }
 
