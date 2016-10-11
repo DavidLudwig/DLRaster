@@ -4,12 +4,12 @@
 // Disable deprecated C function warnings from MSVC:
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <SDL.h>
+#include "SDL.h"
 // Make sure SDL doesn't redefine main
 #undef main
 #define GL_GLEXT_PROTOTYPES
-#include <SDL_opengl.h>
-#include <SDL_opengl_glext.h>
+#include "SDL_opengl.h"
+#include "SDL_opengl_glext.h"
 #pragma comment(lib, "opengl32.lib")
 //#include <random>
 //#include <mutex>
