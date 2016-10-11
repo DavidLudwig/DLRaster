@@ -62,11 +62,17 @@ typedef struct DLR_State {
      (((G) & 0xff) <<  8) | \
      (((B) & 0xff)      ))
 
-void DLR_Clear(
+#ifdef __cplusplus
+    #define DLR_EXTERN_C extern "C"
+#else
+    #define DLR_EXTERN_C
+#endif
+
+DLR_EXTERN_C void DLR_Clear(
     DLR_State * state,
     Uint32 color);
 
-void DLR_CalculateBarycentricCoordinates(
+DLR_EXTERN_C void DLR_CalculateBarycentricCoordinates(
     DLR_Vertex p,
     DLR_Vertex a,
     DLR_Vertex b,
@@ -75,13 +81,13 @@ void DLR_CalculateBarycentricCoordinates(
     DLR_Float *lambdaB,
     DLR_Float *lambdaC);
 
-void DLR_DrawTriangle(
+DLR_EXTERN_C void DLR_DrawTriangle(
     DLR_State * state,
     DLR_Vertex v0,
     DLR_Vertex v1,
     DLR_Vertex v2);
 
-void DLR_DrawTriangles(
+DLR_EXTERN_C void DLR_DrawTriangles(
     DLR_State * state,
     DLR_Vertex * vertices,
     size_t vertexCount);
@@ -90,7 +96,7 @@ void DLR_DrawTriangles(
 
 #ifdef DL_RASTER_IMPLEMENTATION
 
-void DLR_Clear(
+DLR_EXTERN_C void DLR_Clear(
     DLR_State * state,
     Uint32 color)
 {
@@ -102,7 +108,7 @@ void DLR_Clear(
 //    return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
 //}
 
-void DLR_CalculateBarycentricCoordinates(DLR_Vertex p, DLR_Vertex a, DLR_Vertex b, DLR_Vertex c, DLR_Float *lambdaA, DLR_Float *lambdaB, DLR_Float *lambdaC) {
+DLR_EXTERN_C void DLR_CalculateBarycentricCoordinates(DLR_Vertex p, DLR_Vertex a, DLR_Vertex b, DLR_Vertex c, DLR_Float *lambdaA, DLR_Float *lambdaB, DLR_Float *lambdaC) {
     *lambdaA =
         ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) /
         ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
@@ -199,7 +205,7 @@ DLR_Color<DLR_Float> & DLR_VertexColor(DLR_Vertex & v) {
     return * cptr2;
 }
 
-void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
+DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
 {
     // TODO: consider adding +1 to *max vars, to prevent clipping.  This'll depend on how we determine if a pixel is lit.
     int ymin = (int) SDL_min(v0.y, SDL_min(v1.y, v2.y));
@@ -307,7 +313,7 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
     }
 }
 
-void DLR_DrawTriangles(DLR_State * state, DLR_Vertex * vertices, size_t vertexCount)
+DLR_EXTERN_C void DLR_DrawTriangles(DLR_State * state, DLR_Vertex * vertices, size_t vertexCount)
 {
     for (size_t i = 0; (i + 2) < vertexCount; i += 3) {
         DLR_DrawTriangle(state, vertices[i], vertices[i+1], vertices[i+2]);
