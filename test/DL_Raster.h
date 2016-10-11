@@ -94,48 +94,6 @@ DLR_EXTERN_C void DLR_Clear(
     SDL_FillRect(state->dest, NULL, color);
 }
 
-//DLR_Float DLR_CalculateOrientation(DLR_Vertex a, DLR_Vertex b, DLR_Vertex c) {
-//    //return (b.x-a.x) * (c.y-a.y) - (b.y-a.y) * (c.x-a.x));
-//    return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
-//}
-
-static void DLR_CalculateBarycentricCoordinates(
-    DLR_Vertex p,
-    DLR_Vertex a,
-    DLR_Vertex b,
-    DLR_Vertex c,
-    DLR_Float *lambdaA,
-    DLR_Float *lambdaB,
-    DLR_Float *lambdaC)
-{
-    *lambdaA =
-        ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) /
-        ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
-
-    *lambdaB =
-        ((c.y - a.y) * (p.x - c.x) + (a.x - c.x) * (p.y - c.y)) /
-        ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
-
-    *lambdaC = 1. - *lambdaA - *lambdaB;
-}
-
-static inline bool DLR_WithinEdgeAreaClockwise(DLR_Float barycentric, DLR_Float edgeX, DLR_Float edgeY)
-{
-    if (barycentric < 0) {
-        return false;
-    } else if (barycentric == 0) {
-        if (edgeY == 0 && edgeX > 0) {
-            return true;
-        } else if (edgeY < 0) {
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        return true;
-    }
-}
-
 template <typename DLR_ColorComponent>
 struct DLR_Color {
     DLR_ColorComponent A;
@@ -200,6 +158,48 @@ DLR_Color<DLR_Float> & DLR_VertexColor(DLR_Vertex & v) {
     DLR_Float * cptr1 = &(v.a);
     DLR_Color<DLR_Float> * cptr2 = (DLR_Color<DLR_Float> *) cptr1;
     return * cptr2;
+}
+
+//DLR_Float DLR_CalculateOrientation(DLR_Vertex a, DLR_Vertex b, DLR_Vertex c) {
+//    //return (b.x-a.x) * (c.y-a.y) - (b.y-a.y) * (c.x-a.x));
+//    return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
+//}
+
+static void DLR_CalculateBarycentricCoordinates(
+    DLR_Vertex p,
+    DLR_Vertex a,
+    DLR_Vertex b,
+    DLR_Vertex c,
+    DLR_Float *lambdaA,
+    DLR_Float *lambdaB,
+    DLR_Float *lambdaC)
+{
+    *lambdaA =
+        ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) /
+        ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
+
+    *lambdaB =
+        ((c.y - a.y) * (p.x - c.x) + (a.x - c.x) * (p.y - c.y)) /
+        ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
+
+    *lambdaC = 1. - *lambdaA - *lambdaB;
+}
+
+static inline bool DLR_WithinEdgeAreaClockwise(DLR_Float barycentric, DLR_Float edgeX, DLR_Float edgeY)
+{
+    if (barycentric < 0) {
+        return false;
+    } else if (barycentric == 0) {
+        if (edgeY == 0 && edgeX > 0) {
+            return true;
+        } else if (edgeY < 0) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return true;
+    }
 }
 
 DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
