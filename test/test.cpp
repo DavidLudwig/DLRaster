@@ -640,7 +640,11 @@ int main(int, char **) {
     DLRTest_UpdateWindowTitles();
 
     // Performance measurement stuff:
+#ifdef DLRTEST_FPSTICKS
+    const int numTicksToEachMeasurement = DLRTEST_FPSTICKS;
+#else
     const int numTicksToEachMeasurement = 500;
+#endif
     int numTicksToMeasurement = numTicksToEachMeasurement;
     Uint64 lastMeasurement = SDL_GetPerformanceCounter();
 
