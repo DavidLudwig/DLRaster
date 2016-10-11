@@ -19,20 +19,22 @@ typedef enum {
     //DLR_TEXTUREMODULATE_ALPHA   = (1 << 2)
 } DLR_TextureModulate;
 
+typedef double DLR_Float;       // huh, double can be faster than float, at least on a high-end-ish x64 CPU
+
 typedef struct DLR_Point {
-    double x;
-    double y;
+    DLR_Float x;
+    DLR_Float y;
 } DLR_Point;
 
 typedef struct DLR_Vertex {
-    double x;
-    double y;
-    double a;
-    double r;
-    double g;
-    double b;
-    double uv;
-    double uw;
+    DLR_Float x;
+    DLR_Float y;
+    DLR_Float a;
+    DLR_Float r;
+    DLR_Float g;
+    DLR_Float b;
+    DLR_Float uv;
+    DLR_Float uw;
 } DLR_Vertex;
 
 typedef struct DLR_State {
@@ -69,9 +71,9 @@ void DLR_CalculateBarycentricCoordinates(
     DLR_Vertex a,
     DLR_Vertex b,
     DLR_Vertex c,
-    double *lambdaA,
-    double *lambdaB,
-    double *lambdaC);
+    DLR_Float *lambdaA,
+    DLR_Float *lambdaB,
+    DLR_Float *lambdaC);
 
 void DLR_DrawTriangle(
     DLR_State * state,
@@ -95,12 +97,12 @@ void DLR_Clear(
     SDL_FillRect(state->dest, NULL, color);
 }
 
-//double DLR_CalculateOrientation(DLR_Vertex a, DLR_Vertex b, DLR_Vertex c) {
+//DLR_Float DLR_CalculateOrientation(DLR_Vertex a, DLR_Vertex b, DLR_Vertex c) {
 //    //return (b.x-a.x) * (c.y-a.y) - (b.y-a.y) * (c.x-a.x));
 //    return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
 //}
 
-void DLR_CalculateBarycentricCoordinates(DLR_Vertex p, DLR_Vertex a, DLR_Vertex b, DLR_Vertex c, double *lambdaA, double *lambdaB, double *lambdaC) {
+void DLR_CalculateBarycentricCoordinates(DLR_Vertex p, DLR_Vertex a, DLR_Vertex b, DLR_Vertex c, DLR_Float *lambdaA, DLR_Float *lambdaB, DLR_Float *lambdaC) {
     *lambdaA =
         ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) /
         ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
@@ -112,7 +114,7 @@ void DLR_CalculateBarycentricCoordinates(DLR_Vertex p, DLR_Vertex a, DLR_Vertex 
     *lambdaC = 1. - *lambdaA - *lambdaB;
 }
 
-static inline bool DLR_WithinEdgeAreaClockwise(double barycentric, double edgeX, double edgeY)
+static inline bool DLR_WithinEdgeAreaClockwise(DLR_Float barycentric, DLR_Float edgeX, DLR_Float edgeY)
 {
     if (barycentric == 0) {
         if (edgeY == 0 && edgeX > 0) {
@@ -176,7 +178,7 @@ static Uint32 DLR_Join(DLR_Color<Uint8> c) {
     return DLR_JoinARGB32(c.A, c.R, c.G, c.B);
 }
 
-static DLR_Color<Uint8> DLR_Round(DLR_Color<double> c) {
+static DLR_Color<Uint8> DLR_Round(DLR_Color<DLR_Float> c) {
     return {
         (Uint8)(c.A + 0.5),
         (Uint8)(c.R + 0.5),
@@ -191,9 +193,9 @@ static DLR_Color<Uint8> DLR_Round(DLR_Color<double> c) {
     SDL_assert(C.G >= 0 && C.G <= 255); \
     SDL_assert(C.B >= 0 && C.B <= 255);
 
-DLR_Color<double> & DLR_VertexColor(DLR_Vertex & v) {
-    double * cptr1 = &(v.a);
-    DLR_Color<double> * cptr2 = (DLR_Color<double> *) cptr1;
+DLR_Color<DLR_Float> & DLR_VertexColor(DLR_Vertex & v) {
+    DLR_Float * cptr1 = &(v.a);
+    DLR_Color<DLR_Float> * cptr2 = (DLR_Color<DLR_Float> *) cptr1;
     return * cptr2;
 }
 
@@ -213,13 +215,13 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
     xmin = SDL_max(xmin, 0);
     xmax = SDL_min(xmax, (state->dest->w - 1));
 
-    double lambda0;
-    double lambda1;
-    double lambda2;
+    DLR_Float lambda0;
+    DLR_Float lambda1;
+    DLR_Float lambda2;
 
     for (int y = ymin; y <= ymax; ++y) {
         for (int x = 0; x <= xmax; ++x) {
-            DLR_Vertex p = {(double)x, (double)y};
+            DLR_Vertex p = {(DLR_Float)x, (DLR_Float)y};
             p.x += 0.5; // Use the center of the pixel, to determine whether to rasterize
             p.y += 0.5;
             DLR_CalculateBarycentricCoordinates(p, v0, v1, v2, &lambda0, &lambda1, &lambda2);
@@ -232,38 +234,38 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda1, edge1.x, edge1.y);
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda2, edge2.x, edge2.y);
             if (overlaps) {
-                DLR_Color<double> fincomingC = \
+                DLR_Color<DLR_Float> fincomingC = \
                     (DLR_VertexColor(v0) * lambda0) +
                     (DLR_VertexColor(v1) * lambda1) +
                     (DLR_VertexColor(v2) * lambda2);
-                DLR_Color<Uint8> nincomingC = (DLR_Color<Uint8>) DLR_Round(fincomingC * 255.);
+                DLR_Color<Uint8> nincomingC = (DLR_Color<Uint8>) DLR_Round(fincomingC * 255.f);
                 DLR_AssertValidColor8888(nincomingC);
 
                 DLR_Color<Uint8> nfinalC = {0xff, 0xff, 0x00, 0xff};  // default to ugly color
-                double uv = 0.;
-                double uw = 0.;
-                double ftexX = 0.;
-                double ftexY = 0.;
+                DLR_Float uv = 0.;
+                DLR_Float uw = 0.;
+                DLR_Float ftexX = 0.;
+                DLR_Float ftexY = 0.;
                 int ntexX = 0;
                 int ntexY = 0;
                 DLR_Color<Uint8> ntexC = {0, 0, 0, 0};
-                DLR_Color<double> ftexC = {0., 0., 0., 0.};
-                DLR_Color<double> ffinalC = {0., 0., 0., 0.};
+                DLR_Color<DLR_Float> ftexC = {0., 0., 0., 0.};
+                DLR_Color<DLR_Float> ffinalC = {0., 0., 0., 0.};
                 
                 if (state->texture) {
                     uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
                     uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
-                    ftexX = (uv * (double)(state->texture->w /* - 1*/));
-                    ftexY = (uw * (double)(state->texture->h /* - 1*/));
+                    ftexX = (uv * (DLR_Float)(state->texture->w /* - 1*/));
+                    ftexY = (uw * (DLR_Float)(state->texture->h /* - 1*/));
                     ntexX = SDL_min((int)/*round*/(ftexX), state->texture->w - 1);
                     ntexY = SDL_min((int)/*round*/(ftexY), state->texture->h - 1);
                     SDL_assert(ntexX >= 0 && ntexX < state->texture->w);
                     SDL_assert(ntexY >= 0 && ntexY < state->texture->h);
                     ntexC = DLR_GetPixel32(state->texture->pixels, state->texture->pitch, 4, ntexX, ntexY);
-                    ftexC = (DLR_Color<double>)ntexC / 255.;
+                    ftexC = (DLR_Color<DLR_Float>)ntexC / 255.f;
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
                         ffinalC = ftexC * fincomingC;
-                        nfinalC = (DLR_Color<Uint8>) DLR_Round(ffinalC * 255.);
+                        nfinalC = (DLR_Color<Uint8>) DLR_Round(ffinalC * 255.f);
                         DLR_AssertValidColor8888(nfinalC);
                     } else {
                         nfinalC = ntexC;
@@ -283,9 +285,9 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
-                        DLR_Color<double> fsrc = ffinalC;
+                        DLR_Color<DLR_Float> fsrc = ffinalC;
                         DLR_Color<Uint8> ndest = (DLR_Color<Uint8>) DLR_GetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y);
-                        DLR_Color<double> fdest = (DLR_Color<double>)ndest / 255.;
+                        DLR_Color<DLR_Float> fdest = (DLR_Color<DLR_Float>)ndest / 255.f;
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
                         fdest.R = (fsrc.R * fsrc.A) + (fdest.R * (1. - fsrc.A));
@@ -295,7 +297,7 @@ void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Verte
                         // dstA = srcA + (dstA * (1-srcA))
                         fdest.A = fsrc.A + (fdest.A * (1. - fsrc.A));
 
-                        ndest = (DLR_Color<Uint8>) DLR_Round(fdest * 255.);
+                        ndest = (DLR_Color<Uint8>) DLR_Round(fdest * 255.f);
                         DLR_AssertValidColor8888(ndest);
                         DLR_SetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y, DLR_Join(ndest));
                     } break;

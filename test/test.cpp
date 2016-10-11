@@ -364,8 +364,8 @@ void DLRTest_DrawScene(DLRTest_Env * env)
         }
         state.dest = bg;
 
-        double originX = 20;
-        double originY = 20;
+        DLR_Float originX = 20;
+        DLR_Float originY = 20;
         struct { float a, r, g, b; } c[] = {
 #if 1
             {1, 1, 0, 0},
@@ -456,9 +456,9 @@ void DLRTest_DrawScene(DLRTest_Env * env)
             texW = texH = 256;
         }
 
-        double originX = 200.51;
-        double originY = 20.;
-        struct { double a, r, g, b; } c[] = {
+        DLR_Float originX = 200.51;
+        DLR_Float originY = 20.;
+        struct { DLR_Float a, r, g, b; } c[] = {
 #if 1    // multi-color
             {   1,   1, 0.3, 0.3},  // left  top
             {   1, 0.3,   1, 0.3},  // right top
