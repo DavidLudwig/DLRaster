@@ -21,9 +21,17 @@
 #define DL_RASTER_IMPLEMENTATION
 #include "DL_Raster.h"
 
+#ifdef _WIN32
+#define DLRTEST_D3D10 1
+#include <d3d10.h>
+#include "SDL_syswm.h"
+#pragma comment(lib, "d3d10.lib")
+#endif
+
 typedef enum DLR_Test_RendererType {
     DLRTEST_TYPE_SOFTWARE = 0,
-    DLRTEST_TYPE_OPENGL1
+    DLRTEST_TYPE_OPENGL1,
+    DLRTEST_TYPE_D3D10
 } DLR_TestRenderer;
 
 enum DLRTest_Env_Flags {
@@ -48,6 +56,19 @@ struct DLRTest_Env {
             SDL_GLContext gl;       // OpenGL context
             SDL_Surface * exported; // Exported pixels
         } gl;
+#if DLRTEST_D3D10
+        struct {
+            IDXGISwapChain * swapChain;
+            ID3D10Device * device;
+            ID3D10RenderTargetView * renderTargetView;
+            ID3D10RasterizerState * rasterState;
+			ID3D10Effect * effect;
+			ID3D10EffectTechnique * technique;
+			ID3D10InputLayout * layout;
+			ID3D10EffectMatrixVariable * viewMatrix;
+			SDL_Surface * exported;	// Exported pixels
+        } d3d10;
+#endif
     } inner;
 };
 
@@ -62,13 +83,22 @@ static DLRTest_Env envs[] = {
         0,
     },
 
-#if 0   // turn on to compare DLRaster with OpenGL
+#if 1   // turn on to compare DLRaster with OpenGL or D3D10
+#if DLRTEST_D3D10
     {
-        DLRTEST_TYPE_OPENGL1,
-        "DLRTest OGL",
+        DLRTEST_TYPE_D3D10,
+        "DLRTest D3D",
         winW + 10, 60,            // window initial X and Y
         0,
     },
+#else
+	{
+		DLRTEST_TYPE_OPENGL1,
+		"DLRTest OGL",
+		winW + 10, 60,            // window initial X and Y
+		0,
+	},
+#endif
     {
         DLRTEST_TYPE_SOFTWARE,
         "DLRTest CMP",
@@ -148,6 +178,72 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
             env->inner.gl.exported = output;
             return output;
         } break;
+
+#if DLRTEST_D3D10
+		case DLRTEST_TYPE_D3D10: {
+			HRESULT hr;
+			ID3D10Texture2D * backBuffer;
+			hr = env->inner.d3d10.swapChain->GetBuffer(0, __uuidof(ID3D10Texture2D), (void **)&backBuffer);
+			if (FAILED(hr)) {
+				SDL_Log("swap chain GetBuffer() failed, to get back buffer");
+				exit(-1);
+			}
+
+			ID3D10Texture2D * stagingTex;
+			D3D10_TEXTURE2D_DESC texDesc;
+			backBuffer->GetDesc(&texDesc);
+			texDesc.CPUAccessFlags = D3D10_CPU_ACCESS_READ;
+			texDesc.Usage = D3D10_USAGE_STAGING;
+			texDesc.BindFlags = 0;
+			hr = env->inner.d3d10.device->CreateTexture2D(&texDesc, NULL, &stagingTex);
+			if (FAILED(hr)) {
+				SDL_Log("d3d10 device CreateTexture2D failed, to create staging texture (for back buffer read)");
+				exit(-1);
+			}
+
+			env->inner.d3d10.device->CopySubresourceRegion(
+				stagingTex,
+				0,
+				0, 0, 0,
+				backBuffer,
+				0,
+				NULL);
+
+			D3D10_MAPPED_TEXTURE2D texture;
+			hr = stagingTex->Map(D3D10CalcSubresource(0,0,0), D3D10_MAP_READ, 0, &texture);
+			if (FAILED(hr)) {
+				SDL_Log("back buffer Map() failed");
+				exit(-1);
+			}
+			SDL_Surface * tmp = SDL_CreateRGBSurfaceFrom(
+				texture.pData,
+				winW, winH,
+				32,
+				texture.RowPitch,
+				0x000000ff,
+				0x0000ff00,
+				0x00ff0000,
+				0xff000000
+			);
+			if ( ! tmp) {
+				SDL_Log("couldn't create SDL_Surface with raw back buffer data");
+				exit(-1);
+			}
+
+			SDL_PixelFormat * targetFormat = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
+			SDL_Surface * output = SDL_ConvertSurface(tmp, targetFormat, 0);
+			if ( ! output) {
+				SDL_Log("couldn't convert d3d10 back buffer data to DLRTest format");
+				exit(-1);
+			}
+
+			env->inner.d3d10.exported = output;
+			SDL_FreeSurface(tmp);
+			stagingTex->Release();
+			backBuffer->Release();
+			return output;
+		} break;
+#endif
     }
 
     return NULL;
@@ -197,7 +293,7 @@ static void DLRTest_UpdateWindowTitles()
     char window_title[128];
     for (int i = 0; i < num_envs; ++i) {
         SDL_Surface * bg = DLRTest_GetSurfaceForView(&envs[i]);
-        Uint32 c = (curX < 0) ? 0 : DLR_GetPixel32(bg->pixels, bg->pitch, 4, curX, curY);
+        Uint32 c = ( ! (bg && curX >= 0)) ? 0 : DLR_GetPixel32(bg->pixels, bg->pitch, 4, curX, curY);
         Uint8 a, r, g, b;
         DLR_SplitARGB32(c, a, r, g, b);
         
@@ -218,6 +314,7 @@ static void DLRTest_UpdateWindowTitles()
 }
 
 void DLRTest_DrawTriangles_OpenGL1(
+	DLRTest_Env *,
     DLR_State * state,
     DLR_Vertex * vertices,
     size_t vertexCount)
@@ -298,15 +395,95 @@ void DLRTest_DrawTriangles_OpenGL1(
     glEnd();
 }
 
+#if DLRTEST_D3D10
+
+void DLRTest_DrawTriangles_D3D10(
+	DLRTest_Env * env,
+    DLR_State *,
+    DLR_Vertex * vertices,
+    size_t vertexCount)
+{
+	struct InnerVertex {
+		float x;
+		float y;
+		float z;
+		float r;
+		float g;
+		float b;
+		float a;
+	};
+	const size_t sizeofInnerBuffer = vertexCount * sizeof(InnerVertex);
+	static ID3D10Buffer * vertexBufferGPU = NULL;
+	D3D10_BUFFER_DESC bufferDesc;
+	HRESULT hr;
+	if (vertexBufferGPU) {
+		vertexBufferGPU->GetDesc(&bufferDesc);
+		if (bufferDesc.ByteWidth < sizeofInnerBuffer) {
+			vertexBufferGPU->Release();
+			vertexBufferGPU = NULL;
+		}
+	}
+	if ( ! vertexBufferGPU) {
+		memset(&bufferDesc, 0, sizeof(bufferDesc));
+		bufferDesc.Usage = D3D10_USAGE_DYNAMIC;
+		bufferDesc.ByteWidth = sizeofInnerBuffer;
+		bufferDesc.BindFlags = D3D10_BIND_VERTEX_BUFFER;
+		bufferDesc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
+		bufferDesc.MiscFlags = 0;
+		hr = env->inner.d3d10.device->CreateBuffer(&bufferDesc, NULL, &vertexBufferGPU);
+		if (FAILED(hr)) {
+			SDL_Log("d3d10 device CreateBuffer(), for vertex buffer, failed");
+			exit(-1);
+		}
+	}
+	SDL_assert(vertexBufferGPU != NULL);
+
+	InnerVertex * vertexBufferCPU;
+	hr = vertexBufferGPU->Map(D3D10_MAP_WRITE_DISCARD, 0, (void **)&vertexBufferCPU);
+	if (FAILED(hr)) {
+		SDL_Log("d3d10 vertex buffer Map() failed");
+		exit(-1);
+	}
+	SDL_assert(vertexBufferCPU != NULL);
+	for (size_t i = 0; i < vertexCount; ++i) {
+		vertexBufferCPU[i].x = (float) vertices[i].x;
+		vertexBufferCPU[i].y = (float) vertices[i].y;
+		vertexBufferCPU[i].z = 0.f;
+		vertexBufferCPU[i].a = (float) vertices[i].a;
+		vertexBufferCPU[i].r = (float) vertices[i].r;
+		vertexBufferCPU[i].g = (float) vertices[i].g;
+		vertexBufferCPU[i].b = (float) vertices[i].b;
+	}
+	vertexBufferGPU->Unmap();
+
+	UINT stride = sizeof(InnerVertex);
+	UINT offset = 0;
+	env->inner.d3d10.device->IASetVertexBuffers(0, 1, &vertexBufferGPU, &stride, &offset);
+	env->inner.d3d10.device->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	env->inner.d3d10.device->IASetInputLayout(env->inner.d3d10.layout);
+	hr = env->inner.d3d10.technique->GetPassByIndex(0)->Apply(0);
+	if (FAILED(hr)) {
+		SDL_Log("d3d10 technique pass Apply() failed");
+		exit(-1);
+	}
+	env->inner.d3d10.device->Draw(vertexCount, 0);
+	if (FAILED(hr)) {
+		SDL_Log("d3d10 device DrawAuto() failed");
+		exit(-1);
+	}
+}
+#endif
+
 void DLRTest_Clear(
-    DLR_TestRenderer renderer,
+    DLRTest_Env * env,
     DLR_State * state,
     Uint32 color)
 {
-    switch (renderer) {
+    switch (env->type) {
         case DLRTEST_TYPE_SOFTWARE: {
             DLR_Clear(state, color);
         } return;
+
         case DLRTEST_TYPE_OPENGL1: {
             int na, nr, ng, nb;
             DLR_SplitARGB32(color, na, nr, ng, nb);
@@ -318,22 +495,41 @@ void DLRTest_Clear(
             glClearColor(fr, fg, fb, fa);
             glClear(GL_COLOR_BUFFER_BIT);
         } return;
+
+#if DLRTEST_D3D10
+        case DLRTEST_TYPE_D3D10: {
+            Uint8 a, r, g, b;
+            DLR_SplitARGB32(color, a, r, g, b);
+            float fColor[] = {
+                r / 255.f,
+                g / 255.f,
+                b / 255.f,
+                a / 255.f,
+            };
+            env->inner.d3d10.device->ClearRenderTargetView(env->inner.d3d10.renderTargetView, fColor);
+        } break;
+#endif
     }
 }
 
 void DLRTest_DrawTriangles(
-    DLR_TestRenderer renderer,
+    DLRTest_Env * env,
     DLR_State * state,
     DLR_Vertex * vertices,
     size_t vertexCount)
 {
-    switch (renderer) {
+    switch (env->type) {
         case DLRTEST_TYPE_SOFTWARE:
             DLR_DrawTriangles(state, vertices, vertexCount);
             return;
         case DLRTEST_TYPE_OPENGL1:
-            DLRTest_DrawTriangles_OpenGL1(state, vertices, vertexCount);
+            DLRTest_DrawTriangles_OpenGL1(env, state, vertices, vertexCount);
             return;
+#if DLRTEST_D3D10
+        case DLRTEST_TYPE_D3D10:
+            DLRTest_DrawTriangles_D3D10(env, state, vertices, vertexCount);
+            return;
+#endif
     }
 }
 
@@ -344,7 +540,7 @@ void DLRTest_DrawScene(DLRTest_Env * env)
     {
         static DLR_State state;
         state.dest = bg;
-        DLRTest_Clear(env->type, &state, 0xff000000);
+        DLRTest_Clear(env, &state, 0xff000000);
     }
 
     //DLR_Vertex a = {100.f, 100.f, 1, 0, 0};
@@ -382,13 +578,13 @@ void DLRTest_DrawScene(DLRTest_Env * env)
             {originX + 300, originY + 150,    c[1].a, c[1].r, c[1].g, c[1].b,   0, 0},
             {originX + 150, originY + 300,    c[2].a, c[2].r, c[2].g, c[2].b,   0, 0},
         };
-        DLRTest_DrawTriangles(env->type, &state, vertices, SDL_arraysize(vertices));
+        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
     }
 
     //
     // Textured-Square
     //
-    if (1) {
+    if (0) {
         static DLR_State state;
         static int didInitState = 0;
         if (!didInitState) {
@@ -492,7 +688,7 @@ void DLRTest_DrawScene(DLRTest_Env * env)
             {originX       , originY       ,    c[0].a, c[0].r, c[0].g, c[0].b,    0, 0},    // left  top
 #endif
         };
-        DLRTest_DrawTriangles(env->type, &state, vertices, SDL_arraysize(vertices));
+        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
     }
 }
 
@@ -632,6 +828,213 @@ int main(int, char **) {
                 }
             } break;
 
+#if DLRTEST_D3D10
+            case DLRTEST_TYPE_D3D10: {
+                HRESULT hr;
+
+                SDL_SysWMinfo wmInfo;
+                SDL_VERSION(&wmInfo.version);
+                if ( ! SDL_GetWindowWMInfo(envs[i].window, &wmInfo)) {
+                    SDL_Log("SDL_GetWindowWMInfo() failed: %s", SDL_GetError());
+                    return -1;
+                }
+
+                DXGI_SWAP_CHAIN_DESC swapChainDesc;
+                memset(&swapChainDesc, 0, sizeof(swapChainDesc));
+                swapChainDesc.BufferCount = 1;
+                swapChainDesc.BufferDesc.Width = winW;
+                swapChainDesc.BufferDesc.Height = winH;
+                swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+                swapChainDesc.BufferDesc.RefreshRate.Numerator = 0;
+                swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
+                swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+                swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+                swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+                swapChainDesc.OutputWindow = wmInfo.info.win.window;
+                swapChainDesc.SampleDesc.Count = 1;
+                swapChainDesc.SampleDesc.Quality = 0;
+                swapChainDesc.SwapEffect= DXGI_SWAP_EFFECT_DISCARD;
+                swapChainDesc.Windowed = true;
+                hr = D3D10CreateDeviceAndSwapChain(
+                    NULL,
+                    D3D10_DRIVER_TYPE_REFERENCE, //D3D10_DRIVER_TYPE_HARDWARE,
+                    NULL,
+					D3D10_CREATE_DEVICE_DEBUG,
+                    D3D10_SDK_VERSION,
+                    &swapChainDesc,
+                    &envs[i].inner.d3d10.swapChain,
+                    &envs[i].inner.d3d10.device
+                );
+                if (FAILED(hr)) {
+                    SDL_Log("D3D10CreateDeviceAndSwapChain() failed");
+                    return -1;
+                }
+
+                ID3D10Texture2D * backBuffer;
+                hr = envs[i].inner.d3d10.swapChain->GetBuffer(0, __uuidof(ID3D10Texture2D), (void **)&backBuffer);
+                if (FAILED(hr)) {
+                    SDL_Log("swap chain GetBuffer() failed");
+                    return -1;
+                }
+
+                hr = envs[i].inner.d3d10.device->CreateRenderTargetView(backBuffer, NULL, &envs[i].inner.d3d10.renderTargetView);
+                if (FAILED(hr)) {
+                    SDL_Log("d3d10 device CreateRenderTargetView() failed");
+                    return -1;
+                }
+
+                backBuffer->Release();
+                backBuffer = 0;
+
+                envs[i].inner.d3d10.device->OMSetRenderTargets(1, &envs[i].inner.d3d10.renderTargetView, NULL);
+
+                D3D10_RASTERIZER_DESC rasterDesc;
+                memset(&rasterDesc, 0, sizeof(rasterDesc));
+                rasterDesc.CullMode = D3D10_CULL_NONE;
+                rasterDesc.FillMode = D3D10_FILL_SOLID;
+                hr = envs[i].inner.d3d10.device->CreateRasterizerState(&rasterDesc, &envs[i].inner.d3d10.rasterState);
+                if (FAILED(hr)) {
+                    SDL_Log("d3d10 device CreateRasterizerState() failed");
+                    return -1;
+                }
+                envs[i].inner.d3d10.device->RSSetState(envs[i].inner.d3d10.rasterState);
+
+                D3D10_VIEWPORT viewport;
+                memset(&viewport, 0, sizeof(viewport));
+                viewport.Width = winW;
+                viewport.Height = winH;
+                viewport.MinDepth = 0.f;
+                viewport.MaxDepth = 1.f;
+                viewport.TopLeftX = 0;
+                viewport.TopLeftY = 0;
+                envs[i].inner.d3d10.device->RSSetViewports(1, &viewport);
+
+				const char shaderSrc[] = R"DLRSTRING(
+
+matrix viewMatrix;
+
+struct VertexShaderInput {
+    float4 position : POSITION;
+    float4 color : COLOR;
+};
+
+struct PixelShaderInput {
+	float4 position : SV_POSITION;
+	float4 color : COLOR;
+};
+
+PixelShaderInput TheVertexShader(VertexShaderInput input) {
+    PixelShaderInput output;
+	input.position.w = 1.0f;
+    output.position = mul(input.position, viewMatrix);
+    output.color = input.color;
+    return output;
+}
+
+float4 ThePixelShader(PixelShaderInput input) : SV_Target {
+    return input.color;
+}
+
+technique10 TheTechnique
+{
+    pass pass0 {
+        SetVertexShader(CompileShader(vs_4_0, TheVertexShader()));
+        SetPixelShader(CompileShader(ps_4_0, ThePixelShader()));
+        SetGeometryShader(NULL);
+    }
+}
+)DLRSTRING";
+
+				//FILE * fp = fopen("D3D10_Shaders.fx", "rb");
+				//if ( ! fp) {
+				//	SDL_Log("unable to open D3D10_Shaders.fx");
+				//	return -1;
+				//}
+
+				ID3D10Blob * compiledEffect = NULL;
+				ID3D10Blob * errors = NULL;
+				hr = D3D10CompileEffectFromMemory(
+					(void *)shaderSrc,
+					sizeof(shaderSrc),
+					"D3D10_Shaders.fx",
+					NULL,
+					NULL,
+					D3D10_SHADER_ENABLE_STRICTNESS,
+					0,
+					&compiledEffect,
+					&errors);
+				if (FAILED(hr)) {
+					SDL_Log("D3D10CompileEffectFromMemory() failed");
+					char * errorMessage = (char *) errors->GetBufferPointer();
+					size_t errorMessageSize = errors->GetBufferSize();
+					char buf[1024];
+					snprintf(buf, sizeof(buf), "%.*s", errorMessageSize, errorMessage);
+					SDL_Log("%s", buf);
+					return -1;
+				}
+
+				hr = D3D10CreateEffectFromMemory(
+					compiledEffect->GetBufferPointer(),
+					compiledEffect->GetBufferSize(),
+					0,
+					envs[i].inner.d3d10.device,
+					NULL,
+					&envs[i].inner.d3d10.effect);
+				if (FAILED(hr)) {
+					SDL_Log("D3D10CreateEffectFromMemory() failed");
+					return -1;
+				}
+				//compiledEffect->Release();
+
+				envs[i].inner.d3d10.technique = envs[i].inner.d3d10.effect->GetTechniqueByIndex(0);
+				if ( ! envs[i].inner.d3d10.technique) {
+					SDL_Log("d3d 10 effect GetTechniqueByIndex() failed");
+					return -1;
+				}
+
+				D3D10_INPUT_ELEMENT_DESC layout[2];
+				layout[0].SemanticName = "POSITION";
+				layout[0].SemanticIndex = 0;
+				layout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+				layout[0].InputSlot = 0;
+				layout[0].AlignedByteOffset = 0;
+				layout[0].InputSlotClass = D3D10_INPUT_PER_VERTEX_DATA;
+				layout[0].InstanceDataStepRate = 0;
+				//
+				layout[1].SemanticName = "COLOR";
+				layout[1].SemanticIndex = 0;
+				layout[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+				layout[1].InputSlot = 0;
+				layout[1].AlignedByteOffset = D3D10_APPEND_ALIGNED_ELEMENT;
+				layout[1].InputSlotClass = D3D10_INPUT_PER_VERTEX_DATA;
+				layout[1].InstanceDataStepRate = 0;
+
+				D3D10_PASS_DESC passDesc;
+				hr = envs[i].inner.d3d10.technique->GetPassByIndex(0)->GetDesc(&passDesc);
+				if (FAILED(hr)) {
+					SDL_Log("d3d 10 technique pass GetDesc() failed");
+					return -1;
+				}
+
+				hr = envs[i].inner.d3d10.device->CreateInputLayout(
+					layout,
+					sizeof(layout) / sizeof(layout[0]),
+					passDesc.pIAInputSignature,
+					passDesc.IAInputSignatureSize,
+					&envs[i].inner.d3d10.layout);
+				if (FAILED(hr)) {
+					SDL_Log("d3d 10 device CreateInputLayout() failed");
+					return -1;
+				}
+
+				envs[i].inner.d3d10.viewMatrix = envs[i].inner.d3d10.effect->GetVariableByName("viewMatrix")->AsMatrix();
+				if ( ! envs[i].inner.d3d10.viewMatrix) {
+					SDL_Log("unable to find 'viewMatrix' global in shader");
+					return -1;
+				}
+            } break;
+#endif
+
             default:
                 SDL_Log("unknown renderer type");
                 return -1;
@@ -666,6 +1069,17 @@ int main(int, char **) {
             DLR_Test_ProcessEvent(e);
         }
 
+		// Create a view matrix for OpenGL and/or D3D10 use
+		gbMat4 rotateX;
+		gb_mat4_rotate(&rotateX, {1, 0, 0}, (float)M_PI);
+		gbMat4 translateXY;
+		gb_mat4_translate(&translateXY, {-1.f, -1.f, 0});
+		gbMat4 scaleXY;
+		gb_mat4_scale(&scaleXY, {2.f/(float)winW, 2.f/(float)winH, 1});
+		gbMat4 finalM;
+		gb_mat4_mul(&finalM, &rotateX, &translateXY);
+		gb_mat4_mul(&finalM, &finalM, &scaleXY);
+
         // Draw
         for (int i = 0; i < num_envs; ++i) {
             DLRTest_Env * env = &envs[i];
@@ -674,21 +1088,19 @@ int main(int, char **) {
             switch (env->type) {
                 case DLRTEST_TYPE_SOFTWARE: {
                 } break;
-                case DLRTEST_TYPE_OPENGL1: {
+
+				case DLRTEST_TYPE_OPENGL1: {
                     SDL_GL_MakeCurrent(envs[i].window, env->inner.gl.gl);
                     glClearColor(0, 0, 0, 1);
                     glClear(GL_COLOR_BUFFER_BIT);
-                    gbMat4 rotateX;
-                    gb_mat4_rotate(&rotateX, {1, 0, 0}, (float)M_PI);
-                    gbMat4 translateXY;
-                    gb_mat4_translate(&translateXY, {-1.f, -1.f, 0});
-                    gbMat4 scaleXY;
-                    gb_mat4_scale(&scaleXY, {2.f/(float)winW, 2.f/(float)winH, 1});
-                    gbMat4 finalM;
-                    gb_mat4_mul(&finalM, &rotateX, &translateXY);
-                    gb_mat4_mul(&finalM, &finalM, &scaleXY);
-                    glLoadMatrixf(finalM.e);
-                } break;
+					glLoadMatrixf(finalM.e);
+				} break;
+
+#if DLRTEST_D3D10
+				case DLRTEST_TYPE_D3D10: {
+					envs[i].inner.d3d10.viewMatrix->SetMatrix(finalM.e);
+				} break;
+#endif
             }
 
             // Render Scene
@@ -697,34 +1109,37 @@ int main(int, char **) {
             } else {
                 // Draw diff between scenes 0 and 1
                 SDL_Surface * dest = DLRTest_GetSurfaceForView(&envs[i]);
+                SDL_Surface * A = DLRTest_GetSurfaceForView(&envs[0]);
+                SDL_Surface * B = DLRTest_GetSurfaceForView(&envs[1]);
                 if (dest) {
-                    SDL_Surface * A = DLRTest_GetSurfaceForView(&envs[0]);
-                    SDL_Surface * B = DLRTest_GetSurfaceForView(&envs[1]);
                     for (int y = 0; y < dest->h; ++y) {
                         for (int x = 0; x < dest->w; ++x) {
-                            Uint32 ac = DLR_GetPixel32(A->pixels, A->pitch, 4, x, y);
-                            int aa, ar, ag, ab;
-                            DLR_SplitARGB32(ac, aa, ar, ag, ab);
+							Uint32 dc = 0xffff0000;
+							if (A && B) {
+								Uint32 ac = DLR_GetPixel32(A->pixels, A->pitch, 4, x, y);
+								int aa, ar, ag, ab;
+								DLR_SplitARGB32(ac, aa, ar, ag, ab);
 
-                            Uint32 bc = DLR_GetPixel32(B->pixels, B->pitch, 4, x, y);
-                            int ba, br, bg, bb;
-                            DLR_SplitARGB32(bc, ba, br, bg, bb);
+								Uint32 bc = DLR_GetPixel32(B->pixels, B->pitch, 4, x, y);
+								int ba, br, bg, bb;
+								DLR_SplitARGB32(bc, ba, br, bg, bb);
 
-                            int beyond = 0;
-                            if (compare & DLRTEST_COMPARE_A) {
-                                beyond |= abs(aa - ba) > compare_threshold;
-                            }
-                            if (compare & DLRTEST_COMPARE_R) {
-                                beyond |= abs(ar - br) > compare_threshold;
-                            }
-                            if (compare & DLRTEST_COMPARE_G) {
-                                beyond |= abs(ag - bg) > compare_threshold;
-                            }
-                            if (compare & DLRTEST_COMPARE_B) {
-                                beyond |= abs(ab - bb) > compare_threshold;
-                            }
+								int beyond = 0;
+								if (compare & DLRTEST_COMPARE_A) {
+									beyond |= abs(aa - ba) > compare_threshold;
+								}
+								if (compare & DLRTEST_COMPARE_R) {
+									beyond |= abs(ar - br) > compare_threshold;
+								}
+								if (compare & DLRTEST_COMPARE_G) {
+									beyond |= abs(ag - bg) > compare_threshold;
+								}
+								if (compare & DLRTEST_COMPARE_B) {
+									beyond |= abs(ab - bb) > compare_threshold;
+								}
 
-                            Uint32 dc = beyond ? 0xffffffff : 0x00000000;
+								dc = beyond ? 0xffffffff : 0x00000000;
+							}
                             DLR_SetPixel32(dest->pixels, dest->pitch, 4, x, y, dc);
                         }
                     }
@@ -780,9 +1195,20 @@ int main(int, char **) {
 
                     SDL_RenderPresent(r);
                 } break;
+
                 case DLRTEST_TYPE_OPENGL1: {
                     SDL_GL_SwapWindow(envs[i].window);
                 } break;
+
+#if DLRTEST_D3D10
+                case DLRTEST_TYPE_D3D10: {
+                    HRESULT hr = envs[i].inner.d3d10.swapChain->Present(0, 0);   // present without vsymc
+                    if (FAILED(hr)) {
+                        SDL_Log("swap chain Present() failed");
+                        exit(-1);
+                    }
+                } break;
+#endif
             }
         }
     }
