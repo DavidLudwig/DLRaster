@@ -63,9 +63,12 @@ struct DLRTest_Env {
             ID3D10RenderTargetView * renderTargetView;
             ID3D10RasterizerState * rasterState;
 			ID3D10Effect * effect;
-			ID3D10EffectTechnique * technique;
+			ID3D10EffectTechnique * colorTechnique;
+			ID3D10EffectTechnique * textureTechnique;
 			ID3D10InputLayout * layout;
 			ID3D10EffectMatrixVariable * viewMatrix;
+			ID3D10EffectShaderResourceVariable * textureForShader;
+			ID3D10BlendState * blendModeBlend;
 			SDL_Surface * exported;	// Exported pixels
         } d3d10;
 #endif
@@ -399,7 +402,7 @@ void DLRTest_DrawTriangles_OpenGL1(
 
 void DLRTest_DrawTriangles_D3D10(
 	DLRTest_Env * env,
-    DLR_State *,
+    DLR_State * state,
     DLR_Vertex * vertices,
     size_t vertexCount)
 {
@@ -411,6 +414,8 @@ void DLRTest_DrawTriangles_D3D10(
 		float g;
 		float b;
 		float a;
+		float uv;
+		float uw;
 	};
 	const size_t sizeofInnerBuffer = vertexCount * sizeof(InnerVertex);
 	static ID3D10Buffer * vertexBufferGPU = NULL;
@@ -453,6 +458,8 @@ void DLRTest_DrawTriangles_D3D10(
 		vertexBufferCPU[i].r = (float) vertices[i].r;
 		vertexBufferCPU[i].g = (float) vertices[i].g;
 		vertexBufferCPU[i].b = (float) vertices[i].b;
+		vertexBufferCPU[i].uv = (float) vertices[i].uv;
+		vertexBufferCPU[i].uw = (float) vertices[i].uw;
 	}
 	vertexBufferGPU->Unmap();
 
@@ -461,7 +468,92 @@ void DLRTest_DrawTriangles_D3D10(
 	env->inner.d3d10.device->IASetVertexBuffers(0, 1, &vertexBufferGPU, &stride, &offset);
 	env->inner.d3d10.device->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	env->inner.d3d10.device->IASetInputLayout(env->inner.d3d10.layout);
-	hr = env->inner.d3d10.technique->GetPassByIndex(0)->Apply(0);
+
+	if ( ! state->texture) {
+		hr = env->inner.d3d10.colorTechnique->GetPassByIndex(0)->Apply(0);
+	} else {
+		static ID3D10Texture2D * tex = NULL;
+		static ID3D10ShaderResourceView * srView = NULL;
+		if ( ! tex) {
+			//
+			// Super-hack!: For now, use one and only one D3D texture!  This may
+			//  break horribly if two or more textures get used by the app.
+			//
+
+			D3D10_TEXTURE2D_DESC texDesc;
+			memset(&texDesc, 0, sizeof(texDesc));
+			texDesc.Width = state->texture->w;
+			texDesc.Height = state->texture->h;
+			texDesc.MipLevels = 1;
+			texDesc.ArraySize = 1;
+			texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; //DXGI_FORMAT_B8G8R8A8_UNORM;
+			texDesc.SampleDesc.Count = 1;
+			texDesc.SampleDesc.Quality = 0;
+			texDesc.MiscFlags = 0;
+			texDesc.Usage = D3D10_USAGE_DYNAMIC;
+			texDesc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
+			texDesc.BindFlags = D3D10_BIND_SHADER_RESOURCE;
+			hr = env->inner.d3d10.device->CreateTexture2D(&texDesc, NULL, &tex);
+			if (FAILED(hr)) {
+				SDL_Log("d3d10 device CreateTexture2D() failed for app texture");
+				exit(-1);
+			}
+
+			D3D10_SHADER_RESOURCE_VIEW_DESC rvDesc;
+			memset(&rvDesc, 0, sizeof(rvDesc));
+			rvDesc.Format = texDesc.Format;
+			rvDesc.ViewDimension = D3D10_SRV_DIMENSION_TEXTURE2D;
+			rvDesc.Texture2D.MipLevels = texDesc.MipLevels;
+			rvDesc.Texture2D.MostDetailedMip = 0;
+			hr = env->inner.d3d10.device->CreateShaderResourceView(tex, &rvDesc, &srView);
+			if (FAILED(hr)) {
+				SDL_Log("d3d10 device CreateShaderResourceView() failed for app texture");
+				exit(-1);
+			}
+		}
+
+		D3D10_MAPPED_TEXTURE2D mapped;
+		hr = tex->Map(D3D10CalcSubresource(0,0,0), D3D10_MAP_WRITE_DISCARD, 0, &mapped);
+		if (FAILED(hr)) {
+			SDL_Log("d3d10 texture Map() failed for app texture populate");
+			exit(-1);
+		}
+
+		SDL_Surface * dest = SDL_CreateRGBSurfaceFrom(
+			mapped.pData,
+			state->texture->w,
+			state->texture->h,
+			32,
+			mapped.RowPitch,
+			0x000000ff,
+			0x0000ff00,
+			0x00ff0000,
+			0xff000000);
+		SDL_BlitSurface(state->texture, NULL, dest, NULL);
+		tex->Unmap(D3D10CalcSubresource(0,0,0));
+		SDL_FreeSurface(dest);
+
+		hr = env->inner.d3d10.textureForShader->SetResource(srView);
+		if (FAILED(hr)) {
+			SDL_Log("d3d10 shader resource variable SetResource() failed for app texture");
+			exit(-1);
+		}
+
+		hr = env->inner.d3d10.textureTechnique->GetPassByIndex(0)->Apply(0);
+	}
+
+	ID3D10BlendState * blendState;
+	switch (state->blendMode) {
+		case DLR_BLENDMODE_BLEND:
+			blendState = env->inner.d3d10.blendModeBlend;
+			break;
+		case DLR_BLENDMODE_NONE:
+		default:
+			blendState = NULL;
+			break;
+	}
+	env->inner.d3d10.device->OMSetBlendState(blendState, 0, 0xffffffff);
+
 	if (FAILED(hr)) {
 		SDL_Log("d3d10 technique pass Apply() failed");
 		exit(-1);
@@ -584,7 +676,7 @@ void DLRTest_DrawScene(DLRTest_Env * env)
     //
     // Textured-Square
     //
-    if (0) {
+    if (1) {
         static DLR_State state;
         static int didInitState = 0;
         if (!didInitState) {
@@ -613,7 +705,7 @@ void DLRTest_DrawScene(DLRTest_Env * env)
 
                 case DLRTEST_TEXTURE_ALL_WHITE: {
                     state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-                    SDL_FillRect(state.texture, NULL, 0x88888888);
+                    SDL_FillRect(state.texture, NULL, 0xFFFFFFFF);
                 } break;
 
                 case DLRTEST_TEXTURE_VERTICAL_GRADIENT: {
@@ -911,16 +1003,25 @@ int main(int, char **) {
 
 				const char shaderSrc[] = R"DLRSTRING(
 
-matrix viewMatrix;
-
 struct VertexShaderInput {
     float4 position : POSITION;
     float4 color : COLOR;
+	float2 tex : TEXCOORD0;
 };
 
 struct PixelShaderInput {
 	float4 position : SV_POSITION;
 	float4 color : COLOR;
+	float2 tex : TEXCOORD0;
+};
+
+matrix viewMatrix;
+Texture2D theTexture;
+
+SamplerState theSampler {
+	Filter = MIN_MAG_MIP_POINT;
+	AddressU = Clamp;
+	AddressV = Clamp;
 };
 
 PixelShaderInput TheVertexShader(VertexShaderInput input) {
@@ -928,28 +1029,36 @@ PixelShaderInput TheVertexShader(VertexShaderInput input) {
 	input.position.w = 1.0f;
     output.position = mul(input.position, viewMatrix);
     output.color = input.color;
+	output.tex = input.tex;
     return output;
 }
 
-float4 ThePixelShader(PixelShaderInput input) : SV_Target {
+float4 ColorPixelShader(PixelShaderInput input) : SV_Target {
     return input.color;
 }
 
-technique10 TheTechnique
-{
+float4 TexturePixelShader(PixelShaderInput input) : SV_Target {
+	return theTexture.Sample(theSampler, input.tex) * input.color;
+}
+
+technique10 ColorTechnique {
     pass pass0 {
         SetVertexShader(CompileShader(vs_4_0, TheVertexShader()));
-        SetPixelShader(CompileShader(ps_4_0, ThePixelShader()));
+        SetPixelShader(CompileShader(ps_4_0, ColorPixelShader()));
         SetGeometryShader(NULL);
     }
 }
-)DLRSTRING";
 
-				//FILE * fp = fopen("D3D10_Shaders.fx", "rb");
-				//if ( ! fp) {
-				//	SDL_Log("unable to open D3D10_Shaders.fx");
-				//	return -1;
-				//}
+technique10 TextureTechnique {
+    pass pass0 {
+        SetVertexShader(CompileShader(vs_4_0, TheVertexShader()));
+        SetPixelShader(CompileShader(ps_4_0, TexturePixelShader()));
+        SetGeometryShader(NULL);
+    }
+}
+
+
+)DLRSTRING";
 
 				ID3D10Blob * compiledEffect = NULL;
 				ID3D10Blob * errors = NULL;
@@ -986,13 +1095,25 @@ technique10 TheTechnique
 				}
 				//compiledEffect->Release();
 
-				envs[i].inner.d3d10.technique = envs[i].inner.d3d10.effect->GetTechniqueByIndex(0);
-				if ( ! envs[i].inner.d3d10.technique) {
-					SDL_Log("d3d 10 effect GetTechniqueByIndex() failed");
+				envs[i].inner.d3d10.colorTechnique = envs[i].inner.d3d10.effect->GetTechniqueByName("ColorTechnique");
+				if ( ! envs[i].inner.d3d10.colorTechnique) {
+					SDL_Log("d3d 10 effect GetTechniqueByName(\"ColorTechnique\") failed");
 					return -1;
 				}
 
-				D3D10_INPUT_ELEMENT_DESC layout[2];
+				envs[i].inner.d3d10.textureTechnique = envs[i].inner.d3d10.effect->GetTechniqueByName("TextureTechnique");
+				if ( ! envs[i].inner.d3d10.textureTechnique) {
+					SDL_Log("d3d 10 effect GetTechniqueByName(\"TextureTechnique\") failed");
+					return -1;
+				}
+
+				envs[i].inner.d3d10.textureForShader = envs[i].inner.d3d10.effect->GetVariableByName("theTexture")->AsShaderResource();
+				if ( ! envs[i].inner.d3d10.textureTechnique) {
+					SDL_Log("d3d 10 effect GetVariableByName(\"theTexture\")->AsShaderResource() failed");
+					return -1;
+				}
+
+				D3D10_INPUT_ELEMENT_DESC layout[3];
 				layout[0].SemanticName = "POSITION";
 				layout[0].SemanticIndex = 0;
 				layout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
@@ -1008,9 +1129,17 @@ technique10 TheTechnique
 				layout[1].AlignedByteOffset = D3D10_APPEND_ALIGNED_ELEMENT;
 				layout[1].InputSlotClass = D3D10_INPUT_PER_VERTEX_DATA;
 				layout[1].InstanceDataStepRate = 0;
+				//
+				layout[2].SemanticName = "TEXCOORD";
+				layout[2].SemanticIndex = 0;
+				layout[2].Format = DXGI_FORMAT_R32G32_FLOAT;
+				layout[2].InputSlot = 0;
+				layout[2].AlignedByteOffset = D3D10_APPEND_ALIGNED_ELEMENT;
+				layout[2].InputSlotClass = D3D10_INPUT_PER_VERTEX_DATA;
+				layout[2].InstanceDataStepRate = 0;
 
 				D3D10_PASS_DESC passDesc;
-				hr = envs[i].inner.d3d10.technique->GetPassByIndex(0)->GetDesc(&passDesc);
+				hr = envs[i].inner.d3d10.colorTechnique->GetPassByIndex(0)->GetDesc(&passDesc);
 				if (FAILED(hr)) {
 					SDL_Log("d3d 10 technique pass GetDesc() failed");
 					return -1;
@@ -1030,6 +1159,22 @@ technique10 TheTechnique
 				envs[i].inner.d3d10.viewMatrix = envs[i].inner.d3d10.effect->GetVariableByName("viewMatrix")->AsMatrix();
 				if ( ! envs[i].inner.d3d10.viewMatrix) {
 					SDL_Log("unable to find 'viewMatrix' global in shader");
+					return -1;
+				}
+
+				D3D10_BLEND_DESC blendDesc;
+				memset(&blendDesc, 0, sizeof(blendDesc));
+				blendDesc.BlendOp = D3D10_BLEND_OP_ADD;
+				blendDesc.BlendOpAlpha = D3D10_BLEND_OP_ADD;
+				blendDesc.RenderTargetWriteMask[0] = D3D10_COLOR_WRITE_ENABLE_ALL;
+				blendDesc.BlendEnable[0] = true;
+				blendDesc.SrcBlend = D3D10_BLEND_SRC_ALPHA;
+				blendDesc.DestBlend = D3D10_BLEND_INV_SRC_ALPHA;
+				blendDesc.SrcBlendAlpha = D3D10_BLEND_ONE;
+				blendDesc.DestBlendAlpha = D3D10_BLEND_INV_SRC_ALPHA;
+				hr = envs[i].inner.d3d10.device->CreateBlendState(&blendDesc, &envs[i].inner.d3d10.blendModeBlend);
+				if (FAILED(hr)) {
+					SDL_Log("d3d10 device CreateBlendState() failed for DLR_BLENDMODE_BLEND");
 					return -1;
 				}
             } break;
