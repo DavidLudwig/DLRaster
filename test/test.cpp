@@ -41,7 +41,6 @@ enum DLRTest_Env_Flags {
 
 struct DLRTest_Env {
     DLR_Test_RendererType type;
-    const char * window_title;  // window initial title
     int window_x;               // window initial X
     int window_y;               // window initial Y
     int flags;                  // DLRTest_Env_Flags
@@ -81,7 +80,6 @@ static int winH = 400;
 static DLRTest_Env envs[] = {
     {
         DLRTEST_TYPE_SOFTWARE,
-        "DLRTest SW",
         0, 60,              // window initial X and Y
         0,
     },
@@ -90,7 +88,6 @@ static DLRTest_Env envs[] = {
 #if DLRTEST_D3D10
     {
         DLRTEST_TYPE_D3D10,
-        "DLRTest D3D",
         winW + 10, 60,            // window initial X and Y
         0,
     },
@@ -104,7 +101,6 @@ static DLRTest_Env envs[] = {
 #endif
     {
         DLRTEST_TYPE_SOFTWARE,
-        "DLRTest CMP",
         (winW + 10) * 2, 60,            // window initial X and Y
         DLRTEST_ENV_COMPARE,
     },
@@ -299,16 +295,29 @@ static void DLRTest_UpdateWindowTitles()
         Uint32 c = ( ! (bg && curX >= 0)) ? 0 : DLR_GetPixel32(bg->pixels, bg->pitch, 4, curX, curY);
         Uint8 a, r, g, b;
         DLR_SplitARGB32(c, a, r, g, b);
+
+		const char * typeName = "";
+		switch (envs[i].type) {
+			case DLRTEST_TYPE_OPENGL1:  typeName = "OGL"; break;
+			case DLRTEST_TYPE_D3D10:    typeName = "D3D"; break;
+			case DLRTEST_TYPE_SOFTWARE:
+				if (envs[i].flags & DLRTEST_ENV_COMPARE) {
+					typeName = "CMP";
+				} else {
+					typeName = "SW";
+				}
+				break;
+		}
         
         const char * lockedText = DLRTEST_IS_LOCKED() ? ",lock" : "";
 
         if (envs[i].flags & DLRTEST_ENV_COMPARE) {
-            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s %s +/-:%d p:%d,%d%s a,rgb:%02x,%02x%02x%02x",
-                envs[i].window_title, compare_name, compare_threshold, curX, curY, lockedText,
+            SDL_snprintf(window_title, SDL_arraysize(window_title), "DLRTest %s %s +/-:%d p:%d,%d%s a,rgb:%02x,%02x%02x%02x",
+                typeName, compare_name, compare_threshold, curX, curY, lockedText,
                 a, r, g, b);
         } else {
-            SDL_snprintf(window_title, SDL_arraysize(window_title), "%s p:(%d,%d)%s a,rgb:0x%02x,0x%02x%02x%02x",
-                envs[i].window_title, curX, curY, lockedText,
+            SDL_snprintf(window_title, SDL_arraysize(window_title), "DLRTest %s p:(%d,%d)%s a,rgb:0x%02x,0x%02x%02x%02x",
+                typeName, curX, curY, lockedText,
                 a, r, g, b);
         }
         window_title[SDL_arraysize(window_title)-1] = '\0';
@@ -874,7 +883,7 @@ int main(int, char **) {
         }
 
         envs[i].window = SDL_CreateWindow(
-            envs[i].window_title,
+            "DLRTest",
             envs[i].window_x,
             envs[i].window_y,
             winW, winH,
