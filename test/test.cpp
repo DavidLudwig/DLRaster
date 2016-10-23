@@ -106,7 +106,7 @@ static DLRTest_Env envs[] = {
 #endif
 };
 
-static const int num_envs = SDL_arraysize(envs);
+static int num_envs = SDL_arraysize(envs);
 
 enum DLRTest_Compare : Uint8 {
     DLRTEST_COMPARE_A       = (1 << 0),
@@ -118,6 +118,9 @@ enum DLRTest_Compare : Uint8 {
 };
 static Uint8 compare = DLRTEST_COMPARE_ARGB;
 static int compare_threshold = 1;
+
+static int numTicksToQuit = -1;
+static int numTicksBetweenPerfMeasurements = 500;
 
 PFNGLBLENDFUNCSEPARATEPROC _glBlendFuncSeparate = NULL;
 
@@ -894,7 +897,37 @@ void DLR_Test_ProcessEvent(const SDL_Event & e)
     }
 }
 
-int main(int, char **) {
+int main(int argc, char ** argv) {
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0) {
+            printf("DL_Raster test app\n"
+                   "\n"
+                   "Usage: \n"
+                   "\ttest [--perf] [-n N] [-t N]\n"
+                   "\n"
+                   "Options:\n"
+                   "\t-n N      Run for N ticks, then quit, or -1 to run indefinitely (default: -1)\n"
+                   "\t--perf    Run in performance-testing mode, with only one window\n"
+                   "\t-t N      Log a performance measurement every N ticks (default: %d)\n"
+                   "\n",
+                   numTicksBetweenPerfMeasurements
+                   );
+            exit(0);
+        } else if (strcmp(argv[i], "--perf") == 0) {
+            num_envs = 1;
+        } else if (strcmp(argv[i], "-n") == 0) {
+            if ((i + 1) < argc) {
+                numTicksToQuit = atoi(argv[i+1]);
+                i++;
+            }
+        } else if (strcmp(argv[i], "-t") == 0) {
+            if ((i + 1) < argc) {
+                numTicksBetweenPerfMeasurements = atoi(argv[i+1]);
+                i++;
+            }
+        }
+    }
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("Can't init SDL: %s", SDL_GetError());
         return -1;
@@ -1221,24 +1254,29 @@ technique10 TextureTechnique {
     DLRTest_UpdateWindowTitles();
 
     // Performance measurement stuff:
-#ifdef DLRTEST_FPSTICKS
-    const int numTicksToEachMeasurement = DLRTEST_FPSTICKS;
-#else
-    const int numTicksToEachMeasurement = 500;
-#endif
-    int numTicksToMeasurement = numTicksToEachMeasurement;
-    Uint64 lastMeasurement = SDL_GetPerformanceCounter();
+    printf("# %-15s %-15s\n", "t,seconds", "fps");
+    int numTicksToNextMeasurement = numTicksBetweenPerfMeasurements;
+    const Uint64 initialMeasurement = SDL_GetPerformanceCounter();
+    Uint64 lastMeasurement = initialMeasurement;
 
     // Render loop: process events, then draw.  Repeat until app is done.
-    while (1) {
-        numTicksToMeasurement--;
-        if (numTicksToMeasurement == 0) {
+    uint64_t totalTicks = 0;
+    while (numTicksToQuit != 0) {
+        if (numTicksToQuit == 0) {
+            exit(0);
+        }
+
+        totalTicks++;
+        numTicksToNextMeasurement--;
+        if (numTicksToNextMeasurement == 0) {
             Uint64 now = SDL_GetPerformanceCounter();
             double dtInMS = (double)((now - lastMeasurement) * 1000) / SDL_GetPerformanceFrequency();
-            double fps = (double)numTicksToEachMeasurement / (dtInMS / 1000.0);
-            SDL_Log("%f ms for %d ticks ; %f FPS\n", dtInMS, numTicksToEachMeasurement, fps);
+            double fps = (double)numTicksBetweenPerfMeasurements / (dtInMS / 1000.0);
+            //SDL_Log("%f ms for %d ticks ; %f FPS\n", dtInMS, numTicksBetweenPerfMeasurements, fps);
+            double totalDtInS = (double)((now - initialMeasurement) * 1) / SDL_GetPerformanceFrequency();
+            printf("  %-15.5f %-15.5f\n", totalDtInS, fps);
             lastMeasurement = now;
-            numTicksToMeasurement = numTicksToEachMeasurement;
+            numTicksToNextMeasurement = numTicksBetweenPerfMeasurements;
         }
 
         // Process events
@@ -1388,6 +1426,10 @@ technique10 TextureTechnique {
 #endif
                 } break;
             }
+        }
+
+        if (numTicksToQuit > 0) {
+            --numTicksToQuit;
         }
     }
 
