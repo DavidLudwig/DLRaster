@@ -359,7 +359,7 @@ void DLRTest_DrawTriangles_OpenGL1(
         glGenTextures(1, &tex);
         DLRTest_CheckGL();
     }
-    if ( ! state->texture) {
+    if ( ! state->texture.pixels) {
         glDisable(GL_TEXTURE_2D);
         DLRTest_CheckGL();
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -382,20 +382,20 @@ void DLRTest_DrawTriangles_OpenGL1(
             GL_TEXTURE_2D,
             0,
             GL_RGBA8,
-            state->texture->w,
-            state->texture->h,
+            state->texture.w,
+            state->texture.h,
             0,
             GL_BGRA,
             //GL_RGBA,
             GL_UNSIGNED_BYTE,
-            state->texture->pixels
+            state->texture.pixels
         );
         DLRTest_CheckGL();
     }
 
     glBegin(GL_TRIANGLES);
     for (size_t i = 0; i < vertexCount; ++i) {
-        if (state->textureModulate == DLR_TEXTUREMODULATE_COLOR || state->texture == NULL) {
+        if (state->textureModulate == DLR_TEXTUREMODULATE_COLOR || state->texture.pixels == NULL) {
             glColor4d(vertices[i].r, vertices[i].g, vertices[i].b, vertices[i].a);
         } else {
             glColor4d(1., 1., 1., 1.);
@@ -490,8 +490,8 @@ void DLRTest_DrawTriangles_D3D10(
 
 			D3D10_TEXTURE2D_DESC texDesc;
 			memset(&texDesc, 0, sizeof(texDesc));
-			texDesc.Width = state->texture->w;
-			texDesc.Height = state->texture->h;
+			texDesc.Width = state->texture.w;
+			texDesc.Height = state->texture.h;
 			texDesc.MipLevels = 1;
 			texDesc.ArraySize = 1;
 			texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; //DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -529,8 +529,8 @@ void DLRTest_DrawTriangles_D3D10(
 
 		SDL_Surface * dest = SDL_CreateRGBSurfaceFrom(
 			mapped.pData,
-			state->texture->w,
-			state->texture->h,
+			state->texture.w,
+			state->texture.h,
 			32,
 			mapped.RowPitch,
 			0x000000ff,
@@ -633,13 +633,25 @@ void DLRTest_DrawTriangles(
     }
 }
 
+DLR_SurfaceRef DLRTest_SDLToDLRSurfaceNoCopy(SDL_Surface * src)
+{
+    DLR_SurfaceRef dest = {0};
+    if (src) {
+        dest.w = src->w;
+        dest.h = src->h;
+        dest.pitch = src->pitch;
+        dest.pixels = src->pixels;
+    }
+    return dest;
+}
+
 void DLRTest_DrawScene(DLRTest_Env * env)
 {
     SDL_Surface * bg = (env->type == DLRTEST_TYPE_SOFTWARE) ? env->inner.sw.bg : NULL;
 
     {
         static DLR_State state;
-        state.dest = bg;
+        state.dest = DLRTest_SDLToDLRSurfaceNoCopy(bg);
         DLRTest_Clear(env, &state, 0xff000000);
     }
 
@@ -658,7 +670,7 @@ void DLRTest_DrawScene(DLRTest_Env * env)
             memset(&state, 0, sizeof(state));
             didInitState = 1;
         }
-        state.dest = bg;
+        state.dest = DLRTest_SDLToDLRSurfaceNoCopy(bg);
 
         DLR_Float originX = 20;
         DLR_Float originY = 20;
@@ -699,55 +711,56 @@ void DLRTest_DrawScene(DLRTest_Env * env)
             };
             static const DLRTest_TextureType textureType = DLRTEST_TEXTURE_FROM_IMAGE;
             //static const DLRTest_TextureType textureType = (DLRTest_TextureType) 1;
+            SDL_Surface * textureSrc = NULL;
             switch (textureType) {
                 case DLRTEST_TEXTURE_FROM_IMAGE: {
-                    state.texture = SDL_LoadBMP("texture.bmp");
-                    if ( ! state.texture) {
-                        state.texture = SDL_LoadBMP("../../texture.bmp");   // for OSX, via test-DLRaster Xcode project
+                    textureSrc = SDL_LoadBMP("texture.bmp");
+                    if ( ! textureSrc) {
+                        textureSrc = SDL_LoadBMP("../../texture.bmp");   // for OSX, via test-DLRaster Xcode project
                     }
                 } break;
 
                 case DLRTEST_TEXTURE_NONE: {
-                    state.texture = NULL;
+                    textureSrc = NULL;
                 } break;
 
                 case DLRTEST_TEXTURE_ALL_WHITE: {
-                    state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-                    SDL_FillRect(state.texture, NULL, 0xFFFFFFFF);
+                    textureSrc = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+                    SDL_FillRect(textureSrc, NULL, 0xFFFFFFFF);
                 } break;
 
                 case DLRTEST_TEXTURE_VERTICAL_GRADIENT: {
-                    state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+                    textureSrc = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
                     for (int y = 0; y < 256; ++y) {
                         for (int x = 0; x < 256; ++x) {
                             Uint32 c = DLR_JoinARGB32(0xff, y, y, y);
                             //Uint32 c = (y == 100) ? 0xffffffff : 0x88888888;
-                            DLR_SetPixel32(state.texture->pixels, state.texture->pitch, 4, x, y, c);
+                            DLR_SetPixel32(textureSrc->pixels, textureSrc->pitch, 4, x, y, c);
                         }
                     }
                 } break;
 
                 case DLRTEST_TEXTURE_HORIZONTAL_GRADIENT: {
-                    state.texture = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+                    textureSrc = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
                     for (int y = 0; y < 256; ++y) {
                         for (int x = 0; x < 256; ++x) {
                             Uint32 c = DLR_JoinARGB32(0xff, x, x, x);
-                            DLR_SetPixel32(state.texture->pixels, state.texture->pitch, 4, x, y, c);
+                            DLR_SetPixel32(textureSrc->pixels, textureSrc->pitch, 4, x, y, c);
                         }
                     }
                 } break;
             }
-
+            state.texture = DLRTest_SDLToDLRSurfaceNoCopy(textureSrc);
             didInitState = 1;
         }
-        state.dest = bg;
+        state.dest = DLRTest_SDLToDLRSurfaceNoCopy(bg);
         state.textureModulate = DLR_TEXTUREMODULATE_COLOR;
         state.blendMode = DLR_BLENDMODE_BLEND;
 
         int texW, texH;
-        if (state.texture) {
-            texW = state.texture->w;
-            texH = state.texture->h;
+        if (state.texture.pixels) {
+            texW = state.texture.w;
+            texH = state.texture.h;
         } else {
             texW = texH = 256;
         }

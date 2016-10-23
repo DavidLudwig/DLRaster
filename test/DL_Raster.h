@@ -37,9 +37,16 @@ typedef struct DLR_Vertex {
     DLR_Float uw;
 } DLR_Vertex;
 
+typedef struct DLR_SurfaceRef {
+    void * pixels;
+    int w;
+    int h;
+    int pitch;
+} DLR_SurfaceRef;
+
 typedef struct DLR_State {
-    SDL_Surface * dest;     // a NON-owning pointer!  TODO: remove LibSDL dependency 
-    SDL_Surface * texture;  // a NON-owning pointer!  TODO: remove LibSDL dependency
+    DLR_SurfaceRef dest;        // a NON-owning pointer!
+    DLR_SurfaceRef texture;     // a NON-owning pointer!
     DLR_BlendMode blendMode;
     DLR_TextureModulate textureModulate;
 } DLR_State;
@@ -61,6 +68,16 @@ typedef struct DLR_State {
      (((R) & 0xff) << 16) | \
      (((G) & 0xff) <<  8) | \
      (((B) & 0xff)      ))
+
+#define DLR_Min(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define DLR_Max(X, Y) (((X) > (Y)) ? (X) : (Y))
+
+#if !defined(NDEBUG) && (defined(DEBUG) || defined(_DEBUG))
+    #include <assert.h>
+    #define DLR_Assert(X) assert(X)
+#else
+    #define DLR_Assert(X)
+#endif
 
 #ifdef __cplusplus
     #define DLR_EXTERN_C extern "C"
@@ -91,7 +108,11 @@ DLR_EXTERN_C void DLR_Clear(
     DLR_State * state,
     Uint32 color)
 {
-    SDL_FillRect(state->dest, NULL, color);
+    for (int y = 0; y < state->dest.h; ++y) {
+        for (int x = 0; x <= (state->dest.pitch - 4); x += 4) {
+            *((uint32_t *)(((uint8_t *)state->dest.pixels) + (y * state->dest.pitch) + x)) = color;
+        }
+    }
 }
 
 template <typename DLR_ColorComponent>
@@ -149,10 +170,10 @@ static DLR_Color<Uint8> DLR_Round(DLR_Color<DLR_Float> c) {
 }
 
 #define DLR_AssertValidColor8888(C) \
-    SDL_assert(C.A >= 0 && C.A <= 255); \
-    SDL_assert(C.R >= 0 && C.R <= 255); \
-    SDL_assert(C.G >= 0 && C.G <= 255); \
-    SDL_assert(C.B >= 0 && C.B <= 255);
+    DLR_Assert(C.A >= 0 && C.A <= 255); \
+    DLR_Assert(C.R >= 0 && C.R <= 255); \
+    DLR_Assert(C.G >= 0 && C.G <= 255); \
+    DLR_Assert(C.B >= 0 && C.B <= 255);
 
 DLR_Color<DLR_Float> & DLR_VertexColor(DLR_Vertex & v) {
     DLR_Float * cptr1 = &(v.a);
@@ -205,18 +226,18 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Float barycentric, DLR_Float 
 DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
 {
     // TODO: consider adding +1 to *max vars, to prevent clipping.  This'll depend on how we determine if a pixel is lit.
-    int ymin = (int) SDL_min(v0.y, SDL_min(v1.y, v2.y));
-    int ymax = (int) SDL_max(v0.y, SDL_max(v1.y, v2.y));
-    int xmin = (int) SDL_min(v0.x, SDL_min(v1.x, v2.x));
-    int xmax = (int) SDL_max(v0.x, SDL_max(v1.x, v2.x));
+    int ymin = (int) DLR_Min(v0.y, DLR_Min(v1.y, v2.y));
+    int ymax = (int) DLR_Max(v0.y, DLR_Max(v1.y, v2.y));
+    int xmin = (int) DLR_Min(v0.x, DLR_Min(v1.x, v2.x));
+    int xmax = (int) DLR_Max(v0.x, DLR_Max(v1.x, v2.x));
 
     //xmax++;
     //ymax++;
 
-    ymin = SDL_max(ymin, 0);
-    ymax = SDL_min(ymax, (state->dest->h - 1));
-    xmin = SDL_max(xmin, 0);
-    xmax = SDL_min(xmax, (state->dest->w - 1));
+    ymin = DLR_Max(ymin, 0);
+    ymax = DLR_Min(ymax, (state->dest.h - 1));
+    xmin = DLR_Max(xmin, 0);
+    xmax = DLR_Min(xmax, (state->dest.w - 1));
 
     DLR_Float lambda0;
     DLR_Float lambda1;
@@ -255,16 +276,16 @@ DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex 
                 DLR_Color<DLR_Float> ftexC = {0., 0., 0., 0.};
                 DLR_Color<DLR_Float> ffinalC = {0., 0., 0., 0.};
                 
-                if (state->texture) {
+                if (state->texture.pixels) {
                     uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
                     uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
-                    ftexX = (uv * (DLR_Float)(state->texture->w /* - 1*/));
-                    ftexY = (uw * (DLR_Float)(state->texture->h /* - 1*/));
-                    ntexX = SDL_min((int)/*round*/(ftexX), state->texture->w - 1);
-                    ntexY = SDL_min((int)/*round*/(ftexY), state->texture->h - 1);
-                    SDL_assert(ntexX >= 0 && ntexX < state->texture->w);
-                    SDL_assert(ntexY >= 0 && ntexY < state->texture->h);
-                    ntexC = DLR_GetPixel32(state->texture->pixels, state->texture->pitch, 4, ntexX, ntexY);
+                    ftexX = (uv * (DLR_Float)(state->texture.w /* - 1*/));
+                    ftexY = (uw * (DLR_Float)(state->texture.h /* - 1*/));
+                    ntexX = DLR_Min((int)/*round*/(ftexX), state->texture.w - 1);
+                    ntexY = DLR_Min((int)/*round*/(ftexY), state->texture.h - 1);
+                    DLR_Assert(ntexX >= 0 && ntexX < state->texture.w);
+                    DLR_Assert(ntexY >= 0 && ntexY < state->texture.h);
+                    ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
                     ftexC = (DLR_Color<DLR_Float>)ntexC / 255.f;
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
                         ffinalC = ftexC * fincomingC;
@@ -276,7 +297,7 @@ DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex 
                     }
                 } else {
                     // texture is NULL
-                    SDL_assert(state->texture == NULL);
+                    DLR_Assert(state->texture.pixels == NULL);
                     nfinalC = nincomingC;
                     ffinalC = fincomingC;
                 } // if tex ... ; else ...
@@ -284,12 +305,12 @@ DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex 
                 // color is ARGB
                 switch (state->blendMode) {
                     case DLR_BLENDMODE_NONE: {
-                        DLR_SetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y, DLR_Join(nfinalC));
+                        DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(nfinalC));
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
                         DLR_Color<DLR_Float> fsrc = ffinalC;
-                        DLR_Color<Uint8> ndest = (DLR_Color<Uint8>) DLR_GetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y);
+                        DLR_Color<Uint8> ndest = (DLR_Color<Uint8>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
                         DLR_Color<DLR_Float> fdest = (DLR_Color<DLR_Float>)ndest / 255.f;
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
@@ -302,7 +323,7 @@ DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex 
 
                         ndest = (DLR_Color<Uint8>) DLR_Round(fdest * 255.f);
                         DLR_AssertValidColor8888(ndest);
-                        DLR_SetPixel32(state->dest->pixels, state->dest->pitch, 4, x, y, DLR_Join(ndest));
+                        DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(ndest));
                     } break;
                 }
             } // if (overlaps)
