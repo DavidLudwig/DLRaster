@@ -177,8 +177,8 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
             return output;
         } break;
 
-#if DLRTEST_D3D10
 		case DLRTEST_TYPE_D3D10: {
+#if DLRTEST_D3D10
 			HRESULT hr;
 			ID3D10Texture2D * backBuffer;
 			hr = env->inner.d3d10.swapChain->GetBuffer(0, __uuidof(ID3D10Texture2D), (void **)&backBuffer);
@@ -240,8 +240,8 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
 			stagingTex->Release();
 			backBuffer->Release();
 			return output;
-		} break;
 #endif
+		} break;
     }
 
     return NULL;
@@ -596,8 +596,8 @@ void DLRTest_Clear(
             glClear(GL_COLOR_BUFFER_BIT);
         } return;
 
-#if DLRTEST_D3D10
         case DLRTEST_TYPE_D3D10: {
+#if DLRTEST_D3D10
             Uint8 a, r, g, b;
             DLR_SplitARGB32(color, a, r, g, b);
             float fColor[] = {
@@ -607,8 +607,8 @@ void DLRTest_Clear(
                 a / 255.f,
             };
             env->inner.d3d10.device->ClearRenderTargetView(env->inner.d3d10.renderTargetView, fColor);
-        } break;
 #endif
+        } break;
     }
 }
 
@@ -625,11 +625,11 @@ void DLRTest_DrawTriangles(
         case DLRTEST_TYPE_OPENGL1:
             DLRTest_DrawTriangles_OpenGL1(env, state, vertices, vertexCount);
             return;
-#if DLRTEST_D3D10
         case DLRTEST_TYPE_D3D10:
+#if DLRTEST_D3D10
             DLRTest_DrawTriangles_D3D10(env, state, vertices, vertexCount);
-            return;
 #endif
+            return;
     }
 }
 
@@ -1249,11 +1249,11 @@ technique10 TextureTechnique {
 					glLoadMatrixf(finalM.e);
 				} break;
 
-#if DLRTEST_D3D10
 				case DLRTEST_TYPE_D3D10: {
+#if DLRTEST_D3D10
 					envs[i].inner.d3d10.viewMatrix->SetMatrix(finalM.e);
-				} break;
 #endif
+				} break;
             }
 
             // Render Scene
@@ -1353,15 +1353,15 @@ technique10 TextureTechnique {
                     SDL_GL_SwapWindow(envs[i].window);
                 } break;
 
-#if DLRTEST_D3D10
                 case DLRTEST_TYPE_D3D10: {
+#if DLRTEST_D3D10
                     HRESULT hr = envs[i].inner.d3d10.swapChain->Present(0, 0);   // present without vsymc
                     if (FAILED(hr)) {
                         SDL_Log("swap chain Present() failed");
                         exit(-1);
                     }
-                } break;
 #endif
+                } break;
             }
         }
     }
