@@ -70,7 +70,7 @@ typedef struct DLR_State {
     (*(Uint32 *)((Uint8 *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP)))))
 
 #define DLR_SetPixel32(PIXELS, PITCH, BYTESPP, X, Y, COLOR) \
-    *(Uint32 *)((Uint8 *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP)))) = (COLOR)
+    (*(Uint32 *)((Uint8 *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP))))) = (COLOR)
 
 #define DLR_SplitARGB32(SRC, A, R, G, B) \
     (A) = (((SRC) >> 24) & 0xff), \
