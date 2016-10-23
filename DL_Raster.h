@@ -1,8 +1,23 @@
 // DL_Raster.h - SUPER-EARLY WORK-IN-PROGRESS on a new, 2d rasterization library; BUGGY!
 // Public domain, Sep 25 2016, David Ludwig, dludwig@pobox.com. See "unlicense" statement at the end of this file.
+//
+// Usage:
+//
+// Include this file in whatever places need to refer to it. In ONE C/C++
+// file, write:
+//
+//   #define DL_RASTER_IMPLEMENTATION
+//
+// ... before the #include of this file. This expands out the actual
+// implementation into that C/C++ file.  #define'ing DL_RASTER_IMPLEMENTATION
+// in more than one file, or in a header file that many C/C++ file(s) include,
+// will likely lead to build errors from the linker.
+//    
+// All other files should just #include "DL_Raster.h" without the #define.
+//
 
-#ifndef DLRASTER_H
-#define DLRASTER_H
+#ifndef DL_RASTER_H
+#define DL_RASTER_H
 
 typedef enum {
     DLR_BLENDMODE_NONE      = 0,
@@ -100,7 +115,7 @@ DLR_EXTERN_C void DLR_DrawTriangles(
     DLR_Vertex * vertices,
     size_t vertexCount);
 
-#endif // ifndef DLRASTER_H
+#endif // ifndef DL_RASTER_H
 
 #ifdef DL_RASTER_IMPLEMENTATION
 
