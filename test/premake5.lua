@@ -6,7 +6,7 @@ project "test"
     language "C++"
 
     files { "*.h", "*.cpp" }
-    includedirs { "external/SDL2/include" }
+    includedirs { "..", "external/SDL2/include" }
 
     filter { "system:macosx" }
         buildoptions { "-std=c++11" }

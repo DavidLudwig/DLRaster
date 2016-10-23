@@ -14,7 +14,6 @@
 		16DE0C409870BA00D96D03BCEAF6E8007EF54593BD3B4800 /* test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = test; path = test; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C1F4B255BCF8C0043A0D01C5F405C003294228CE0AD0000 /* test.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = test.cpp; path = test.cpp; sourceTree = "<group>"; };
 		A1E95029251650005FDFEEEEC8047800D8F19F85572A5800 /* gb_math.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = gb_math.h; path = gb_math.h; sourceTree = "<group>"; };
-		BB744642BE5E2000BD8243DEE4845000D2906DD24B8B4800 /* DL_Raster.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DL_Raster.h; path = DL_Raster.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31,7 +30,6 @@
 		4AEDC5EED41CF800B54815FB4563A800908F794CD355F000 /* test */ = {
 			isa = PBXGroup;
 			children = (
-				BB744642BE5E2000BD8243DEE4845000D2906DD24B8B4800 /* DL_Raster.h */,
 				A1E95029251650005FDFEEEEC8047800D8F19F85572A5800 /* gb_math.h */,
 				6C1F4B255BCF8C0043A0D01C5F405C003294228CE0AD0000 /* test.cpp */,
 				DE2FD571A6C938008E134D4D9B3FB000BA17F9BDEA135000 /* Products */,
@@ -139,6 +137,7 @@
 				);
 				SYMROOT = bin/Release;
 				USER_HEADER_SEARCH_PATHS = (
+					..,
 					external/SDL2/include,
 				);
 			};
@@ -175,6 +174,7 @@
 				);
 				SYMROOT = bin/Debug;
 				USER_HEADER_SEARCH_PATHS = (
+					..,
 					external/SDL2/include,
 				);
 			};

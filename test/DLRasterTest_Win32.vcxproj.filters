@@ -5,6 +5,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gb_math.h" />
-    <ClInclude Include="DL_Raster.h" />
+    <ClInclude Include="..\DL_Raster.h" />
   </ItemGroup>
 </Project>
