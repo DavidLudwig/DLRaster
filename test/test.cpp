@@ -477,7 +477,7 @@ void DLRTest_DrawTriangles_D3D10(
 	env->inner.d3d10.device->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	env->inner.d3d10.device->IASetInputLayout(env->inner.d3d10.layout);
 
-	if ( ! state->texture) {
+	if ( ! state->texture.pixels) {
 		hr = env->inner.d3d10.colorTechnique->GetPassByIndex(0)->Apply(0);
 	} else {
 		static ID3D10Texture2D * tex = NULL;
@@ -527,6 +527,17 @@ void DLRTest_DrawTriangles_D3D10(
 			exit(-1);
 		}
 
+		SDL_Surface * src = SDL_CreateRGBSurfaceFrom(
+			state->texture.pixels,
+			state->texture.w,
+			state->texture.h,
+			32,
+			state->texture.pitch,
+			0x00ff0000,
+			0x0000ff00,
+			0x000000ff,
+			0xff000000
+			);
 		SDL_Surface * dest = SDL_CreateRGBSurfaceFrom(
 			mapped.pData,
 			state->texture.w,
@@ -537,9 +548,10 @@ void DLRTest_DrawTriangles_D3D10(
 			0x0000ff00,
 			0x00ff0000,
 			0xff000000);
-		SDL_BlitSurface(state->texture, NULL, dest, NULL);
+		SDL_BlitSurface(src, NULL, dest, NULL);
 		tex->Unmap(D3D10CalcSubresource(0,0,0));
 		SDL_FreeSurface(dest);
+		SDL_FreeSurface(src);
 
 		hr = env->inner.d3d10.textureForShader->SetResource(srView);
 		if (FAILED(hr)) {
