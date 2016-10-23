@@ -1,4 +1,4 @@
-workspace "test-DLRaster"
+workspace "test-DL_Raster"
     configurations { "Debug", "Release" }
 
 externalproject "SDL"
