@@ -94,7 +94,6 @@ static DLRTest_Env envs[] = {
 #else
 	{
 		DLRTEST_TYPE_OPENGL1,
-		"DLRTest OGL",
 		winW + 10, 60,            // window initial X and Y
 		0,
 	},
