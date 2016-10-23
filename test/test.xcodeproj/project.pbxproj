@@ -125,6 +125,10 @@
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					..,
+					external/SDL2/include,
+				);
 				OBJROOT = obj/Release;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
@@ -136,10 +140,6 @@
 					"-rpath @executable_path/../../external",
 				);
 				SYMROOT = bin/Release;
-				USER_HEADER_SEARCH_PATHS = (
-					..,
-					external/SDL2/include,
-				);
 			};
 			name = Release;
 		};
@@ -162,6 +162,10 @@
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					..,
+					external/SDL2/include,
+				);
 				OBJROOT = obj/Debug;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
@@ -173,10 +177,6 @@
 					"-rpath @executable_path/../../external",
 				);
 				SYMROOT = bin/Debug;
-				USER_HEADER_SEARCH_PATHS = (
-					..,
-					external/SDL2/include,
-				);
 			};
 			name = Debug;
 		};
