@@ -12,7 +12,7 @@
 // ... before the #include of this file. This expands out the actual
 // implementation into that C/C++ file.  #define'ing DL_RASTER_IMPLEMENTATION
 // in more than one file, or in a header file that many C/C++ file(s) include,
-// will likely lead to build errors from the linker.
+// will likely lead to build errors (from the linker).
 //    
 // All other files should just #include "DL_Raster.h" without the #define.
 //
