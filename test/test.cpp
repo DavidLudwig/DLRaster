@@ -117,7 +117,7 @@ enum DLRTest_Compare : Uint8 {
     DLRTEST_COMPARE_ARGB    = (DLRTEST_COMPARE_A | DLRTEST_COMPARE_R | DLRTEST_COMPARE_G | DLRTEST_COMPARE_B),
 };
 static Uint8 compare = DLRTEST_COMPARE_ARGB;
-static int compare_threshold = 1;
+static int compare_threshold = 0;
 
 static int numTicksToQuit = -1;
 static int numTicksBetweenPerfMeasurements = 500;
@@ -187,7 +187,7 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
             hr = env->inner.d3d10.swapChain->GetBuffer(0, __uuidof(ID3D10Texture2D), (void **)&backBuffer);
             if (FAILED(hr)) {
                 SDL_Log("swap chain GetBuffer() failed, to get back buffer");
-                exit(-1);
+                exit(1);
             }
 
             ID3D10Texture2D * stagingTex;
@@ -199,7 +199,7 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
             hr = env->inner.d3d10.device->CreateTexture2D(&texDesc, NULL, &stagingTex);
             if (FAILED(hr)) {
                 SDL_Log("d3d10 device CreateTexture2D failed, to create staging texture (for back buffer read)");
-                exit(-1);
+                exit(1);
             }
 
             env->inner.d3d10.device->CopySubresourceRegion(
@@ -214,7 +214,7 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
             hr = stagingTex->Map(D3D10CalcSubresource(0,0,0), D3D10_MAP_READ, 0, &texture);
             if (FAILED(hr)) {
                 SDL_Log("back buffer Map() failed");
-                exit(-1);
+                exit(1);
             }
             SDL_Surface * tmp = SDL_CreateRGBSurfaceFrom(
                 texture.pData,
@@ -228,14 +228,14 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
             );
             if ( ! tmp) {
                 SDL_Log("couldn't create SDL_Surface with raw back buffer data");
-                exit(-1);
+                exit(1);
             }
 
             SDL_PixelFormat * targetFormat = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
             SDL_Surface * output = SDL_ConvertSurface(tmp, targetFormat, 0);
             if ( ! output) {
                 SDL_Log("couldn't convert d3d10 back buffer data to DLRTest format");
-                exit(-1);
+                exit(1);
             }
 
             env->inner.d3d10.exported = output;
@@ -449,7 +449,7 @@ void DLRTest_DrawTriangles_D3D10(
         hr = env->inner.d3d10.device->CreateBuffer(&bufferDesc, NULL, &vertexBufferGPU);
         if (FAILED(hr)) {
             SDL_Log("d3d10 device CreateBuffer(), for vertex buffer, failed");
-            exit(-1);
+            exit(1);
         }
     }
     SDL_assert(vertexBufferGPU != NULL);
@@ -458,7 +458,7 @@ void DLRTest_DrawTriangles_D3D10(
     hr = vertexBufferGPU->Map(D3D10_MAP_WRITE_DISCARD, 0, (void **)&vertexBufferCPU);
     if (FAILED(hr)) {
         SDL_Log("d3d10 vertex buffer Map() failed");
-        exit(-1);
+        exit(1);
     }
     SDL_assert(vertexBufferCPU != NULL);
     for (size_t i = 0; i < vertexCount; ++i) {
@@ -507,7 +507,7 @@ void DLRTest_DrawTriangles_D3D10(
             hr = env->inner.d3d10.device->CreateTexture2D(&texDesc, NULL, &tex);
             if (FAILED(hr)) {
                 SDL_Log("d3d10 device CreateTexture2D() failed for app texture");
-                exit(-1);
+                exit(1);
             }
 
             D3D10_SHADER_RESOURCE_VIEW_DESC rvDesc;
@@ -519,7 +519,7 @@ void DLRTest_DrawTriangles_D3D10(
             hr = env->inner.d3d10.device->CreateShaderResourceView(tex, &rvDesc, &srView);
             if (FAILED(hr)) {
                 SDL_Log("d3d10 device CreateShaderResourceView() failed for app texture");
-                exit(-1);
+                exit(1);
             }
         }
 
@@ -527,7 +527,7 @@ void DLRTest_DrawTriangles_D3D10(
         hr = tex->Map(D3D10CalcSubresource(0,0,0), D3D10_MAP_WRITE_DISCARD, 0, &mapped);
         if (FAILED(hr)) {
             SDL_Log("d3d10 texture Map() failed for app texture populate");
-            exit(-1);
+            exit(1);
         }
 
         SDL_Surface * src = SDL_CreateRGBSurfaceFrom(
@@ -559,7 +559,7 @@ void DLRTest_DrawTriangles_D3D10(
         hr = env->inner.d3d10.textureForShader->SetResource(srView);
         if (FAILED(hr)) {
             SDL_Log("d3d10 shader resource variable SetResource() failed for app texture");
-            exit(-1);
+            exit(1);
         }
 
         hr = env->inner.d3d10.textureTechnique->GetPassByIndex(0)->Apply(0);
@@ -579,12 +579,12 @@ void DLRTest_DrawTriangles_D3D10(
 
     if (FAILED(hr)) {
         SDL_Log("d3d10 technique pass Apply() failed");
-        exit(-1);
+        exit(1);
     }
     env->inner.d3d10.device->Draw(vertexCount, 0);
     if (FAILED(hr)) {
         SDL_Log("d3d10 device DrawAuto() failed");
-        exit(-1);
+        exit(1);
     }
 }
 #endif
@@ -930,7 +930,7 @@ int main(int argc, char ** argv) {
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("Can't init SDL: %s", SDL_GetError());
-        return -1;
+        exit(1);
     }
 
     for (int i = 0; i < num_envs; ++i) {
@@ -948,24 +948,24 @@ int main(int argc, char ** argv) {
         );
         if ( ! envs[i].window) {
             SDL_Log("SDL_CreateWindow failed, err=%s", SDL_GetError());
-            return -1;
+            exit(1);
         }
         switch (envs[i].type) {
             case DLRTEST_TYPE_SOFTWARE: {
                 SDL_Renderer * r = SDL_CreateRenderer(envs[i].window, -1, 0);
                 if ( ! r) {
                     SDL_Log("SDL_CreateRenderer failed, err=%s", SDL_GetError());
-                    return -1;
+                    exit(1);
                 }
                 envs[i].inner.sw.bgTex = SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, winW, winH);
                 if ( ! envs[i].inner.sw.bgTex) {
                     SDL_Log("Can't create background texture: %s", SDL_GetError());
-                    return -1;
+                    exit(1);
                 }
                 envs[i].inner.sw.bg = SDL_CreateRGBSurface(0, winW, winH, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
                 if ( ! envs[i].inner.sw.bg) {
                     SDL_Log("Can't create background surface: %s", SDL_GetError());
-                    return -1;
+                    exit(1);
                 }
                 SDL_FillRect(envs[i].inner.sw.bg, NULL, 0xFF000000);
             } break;
@@ -974,14 +974,14 @@ int main(int argc, char ** argv) {
                 envs[i].inner.gl.gl = SDL_GL_CreateContext(envs[i].window);
                 if ( ! envs[i].inner.gl.gl) {
                     SDL_Log("SDL_GL_CreateContext failed, err=%s", SDL_GetError());
-                    return -1;
+                    exit(1);
                 }
 
                 if ( ! _glBlendFuncSeparate) {
                     _glBlendFuncSeparate = (PFNGLBLENDFUNCSEPARATEPROC) SDL_GL_GetProcAddress("glBlendFuncSeparate");
                     if ( ! _glBlendFuncSeparate) {
                         SDL_Log("SDL_GL_GetProcAddress(\"glBlendFuncSeparate\") failed, err=%s", SDL_GetError());
-                        return -1;
+                        exit(1);
                     }
                 }
             } break;
@@ -994,7 +994,7 @@ int main(int argc, char ** argv) {
                 SDL_VERSION(&wmInfo.version);
                 if ( ! SDL_GetWindowWMInfo(envs[i].window, &wmInfo)) {
                     SDL_Log("SDL_GetWindowWMInfo() failed: %s", SDL_GetError());
-                    return -1;
+                    exit(1);
                 }
 
                 DXGI_SWAP_CHAIN_DESC swapChainDesc;
@@ -1025,20 +1025,20 @@ int main(int argc, char ** argv) {
                 );
                 if (FAILED(hr)) {
                     SDL_Log("D3D10CreateDeviceAndSwapChain() failed");
-                    return -1;
+                    exit(1);
                 }
 
                 ID3D10Texture2D * backBuffer;
                 hr = envs[i].inner.d3d10.swapChain->GetBuffer(0, __uuidof(ID3D10Texture2D), (void **)&backBuffer);
                 if (FAILED(hr)) {
                     SDL_Log("swap chain GetBuffer() failed");
-                    return -1;
+                    exit(1);
                 }
 
                 hr = envs[i].inner.d3d10.device->CreateRenderTargetView(backBuffer, NULL, &envs[i].inner.d3d10.renderTargetView);
                 if (FAILED(hr)) {
                     SDL_Log("d3d10 device CreateRenderTargetView() failed");
-                    return -1;
+                    exit(1);
                 }
 
                 backBuffer->Release();
@@ -1053,7 +1053,7 @@ int main(int argc, char ** argv) {
                 hr = envs[i].inner.d3d10.device->CreateRasterizerState(&rasterDesc, &envs[i].inner.d3d10.rasterState);
                 if (FAILED(hr)) {
                     SDL_Log("d3d10 device CreateRasterizerState() failed");
-                    return -1;
+                    exit(1);
                 }
                 envs[i].inner.d3d10.device->RSSetState(envs[i].inner.d3d10.rasterState);
 
@@ -1145,7 +1145,7 @@ technique10 TextureTechnique {
                     char buf[1024];
                     snprintf(buf, sizeof(buf), "%.*s", errorMessageSize, errorMessage);
                     SDL_Log("%s", buf);
-                    return -1;
+                    exit(1);
                 }
 
                 hr = D3D10CreateEffectFromMemory(
@@ -1157,26 +1157,26 @@ technique10 TextureTechnique {
                     &envs[i].inner.d3d10.effect);
                 if (FAILED(hr)) {
                     SDL_Log("D3D10CreateEffectFromMemory() failed");
-                    return -1;
+                    exit(1);
                 }
                 //compiledEffect->Release();
 
                 envs[i].inner.d3d10.colorTechnique = envs[i].inner.d3d10.effect->GetTechniqueByName("ColorTechnique");
                 if ( ! envs[i].inner.d3d10.colorTechnique) {
                     SDL_Log("d3d 10 effect GetTechniqueByName(\"ColorTechnique\") failed");
-                    return -1;
+                    exit(1);
                 }
 
                 envs[i].inner.d3d10.textureTechnique = envs[i].inner.d3d10.effect->GetTechniqueByName("TextureTechnique");
                 if ( ! envs[i].inner.d3d10.textureTechnique) {
                     SDL_Log("d3d 10 effect GetTechniqueByName(\"TextureTechnique\") failed");
-                    return -1;
+                    exit(1);
                 }
 
                 envs[i].inner.d3d10.textureForShader = envs[i].inner.d3d10.effect->GetVariableByName("theTexture")->AsShaderResource();
                 if ( ! envs[i].inner.d3d10.textureTechnique) {
                     SDL_Log("d3d 10 effect GetVariableByName(\"theTexture\")->AsShaderResource() failed");
-                    return -1;
+                    exit(1);
                 }
 
                 D3D10_INPUT_ELEMENT_DESC layout[3];
@@ -1208,7 +1208,7 @@ technique10 TextureTechnique {
                 hr = envs[i].inner.d3d10.colorTechnique->GetPassByIndex(0)->GetDesc(&passDesc);
                 if (FAILED(hr)) {
                     SDL_Log("d3d 10 technique pass GetDesc() failed");
-                    return -1;
+                    exit(1);
                 }
 
                 hr = envs[i].inner.d3d10.device->CreateInputLayout(
@@ -1219,13 +1219,13 @@ technique10 TextureTechnique {
                     &envs[i].inner.d3d10.layout);
                 if (FAILED(hr)) {
                     SDL_Log("d3d 10 device CreateInputLayout() failed");
-                    return -1;
+                    exit(1);
                 }
 
                 envs[i].inner.d3d10.viewMatrix = envs[i].inner.d3d10.effect->GetVariableByName("viewMatrix")->AsMatrix();
                 if ( ! envs[i].inner.d3d10.viewMatrix) {
                     SDL_Log("unable to find 'viewMatrix' global in shader");
-                    return -1;
+                    exit(1);
                 }
 
                 D3D10_BLEND_DESC blendDesc;
@@ -1241,14 +1241,14 @@ technique10 TextureTechnique {
                 hr = envs[i].inner.d3d10.device->CreateBlendState(&blendDesc, &envs[i].inner.d3d10.blendModeBlend);
                 if (FAILED(hr)) {
                     SDL_Log("d3d10 device CreateBlendState() failed for DLR_BLENDMODE_BLEND");
-                    return -1;
+                    exit(1);
                 }
             } break;
 #endif
 
             default:
                 SDL_Log("unknown renderer type");
-                return -1;
+                exit(1);
         }
     } // end of init loop
     DLRTest_UpdateWindowTitles();
@@ -1421,7 +1421,7 @@ technique10 TextureTechnique {
                     HRESULT hr = envs[i].inner.d3d10.swapChain->Present(0, 0);   // present without vsymc
                     if (FAILED(hr)) {
                         SDL_Log("swap chain Present() failed");
-                        exit(-1);
+                        exit(1);
                     }
 #endif
                 } break;
