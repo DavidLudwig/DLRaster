@@ -1,7 +1,8 @@
 // DL_Raster.h - SUPER-EARLY WORK-IN-PROGRESS on a new, 2d rasterization library; BUGGY!
 // Public domain, Sep 25 2016, David Ludwig, dludwig@pobox.com. See "unlicense" statement at the end of this file.
 //
-// Usage:
+//
+// Setup:
 //
 // Include this file in whatever places need to refer to it. In ONE C/C++
 // file, write:
