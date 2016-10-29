@@ -416,13 +416,13 @@ void DLRTest_DrawTriangles_OpenGL1(
 
 #if DLRTEST_D3D10
 
-void DLRTest_D3D10_Init()
+void DLRTest_D3D10_Init(DLRTest_Env * env)
 {
     HRESULT hr;
 
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
-    if ( ! SDL_GetWindowWMInfo(envs[i].window, &wmInfo)) {
+    if ( ! SDL_GetWindowWMInfo(env->window, &wmInfo)) {
         SDL_Log("SDL_GetWindowWMInfo() failed: %s", SDL_GetError());
         exit(1);
     }
@@ -450,8 +450,8 @@ void DLRTest_D3D10_Init()
         D3D10_CREATE_DEVICE_DEBUG,
         D3D10_SDK_VERSION,
         &swapChainDesc,
-        &envs[i].inner.d3d10.swapChain,
-        &envs[i].inner.d3d10.device
+        &env->inner.d3d10.swapChain,
+        &env->inner.d3d10.device
     );
     if (FAILED(hr)) {
         SDL_Log("D3D10CreateDeviceAndSwapChain() failed");
@@ -459,13 +459,13 @@ void DLRTest_D3D10_Init()
     }
 
     ID3D10Texture2D * backBuffer;
-    hr = envs[i].inner.d3d10.swapChain->GetBuffer(0, __uuidof(ID3D10Texture2D), (void **)&backBuffer);
+    hr = env->inner.d3d10.swapChain->GetBuffer(0, __uuidof(ID3D10Texture2D), (void **)&backBuffer);
     if (FAILED(hr)) {
         SDL_Log("swap chain GetBuffer() failed");
         exit(1);
     }
 
-    hr = envs[i].inner.d3d10.device->CreateRenderTargetView(backBuffer, NULL, &envs[i].inner.d3d10.renderTargetView);
+    hr = env->inner.d3d10.device->CreateRenderTargetView(backBuffer, NULL, &env->inner.d3d10.renderTargetView);
     if (FAILED(hr)) {
         SDL_Log("d3d10 device CreateRenderTargetView() failed");
         exit(1);
@@ -474,18 +474,18 @@ void DLRTest_D3D10_Init()
     backBuffer->Release();
     backBuffer = 0;
 
-    envs[i].inner.d3d10.device->OMSetRenderTargets(1, &envs[i].inner.d3d10.renderTargetView, NULL);
+    env->inner.d3d10.device->OMSetRenderTargets(1, &env->inner.d3d10.renderTargetView, NULL);
 
     D3D10_RASTERIZER_DESC rasterDesc;
     memset(&rasterDesc, 0, sizeof(rasterDesc));
     rasterDesc.CullMode = D3D10_CULL_NONE;
     rasterDesc.FillMode = D3D10_FILL_SOLID;
-    hr = envs[i].inner.d3d10.device->CreateRasterizerState(&rasterDesc, &envs[i].inner.d3d10.rasterState);
+    hr = env->inner.d3d10.device->CreateRasterizerState(&rasterDesc, &env->inner.d3d10.rasterState);
     if (FAILED(hr)) {
         SDL_Log("d3d10 device CreateRasterizerState() failed");
         exit(1);
     }
-    envs[i].inner.d3d10.device->RSSetState(envs[i].inner.d3d10.rasterState);
+    env->inner.d3d10.device->RSSetState(env->inner.d3d10.rasterState);
 
     D3D10_VIEWPORT viewport;
     memset(&viewport, 0, sizeof(viewport));
@@ -495,7 +495,7 @@ void DLRTest_D3D10_Init()
     viewport.MaxDepth = 1.f;
     viewport.TopLeftX = 0;
     viewport.TopLeftY = 0;
-    envs[i].inner.d3d10.device->RSSetViewports(1, &viewport);
+    env->inner.d3d10.device->RSSetViewports(1, &viewport);
 
     const char shaderSrc[] = R"DLRSTRING(
 struct VertexShaderInput {
@@ -579,29 +579,29 @@ technique10 TextureTechnique {
         compiledEffect->GetBufferPointer(),
         compiledEffect->GetBufferSize(),
         0,
-        envs[i].inner.d3d10.device,
+        env->inner.d3d10.device,
         NULL,
-        &envs[i].inner.d3d10.effect);
+        &env->inner.d3d10.effect);
     if (FAILED(hr)) {
         SDL_Log("D3D10CreateEffectFromMemory() failed");
         exit(1);
     }
     //compiledEffect->Release();
 
-    envs[i].inner.d3d10.colorTechnique = envs[i].inner.d3d10.effect->GetTechniqueByName("ColorTechnique");
-    if ( ! envs[i].inner.d3d10.colorTechnique) {
+    env->inner.d3d10.colorTechnique = env->inner.d3d10.effect->GetTechniqueByName("ColorTechnique");
+    if ( ! env->inner.d3d10.colorTechnique) {
         SDL_Log("d3d 10 effect GetTechniqueByName(\"ColorTechnique\") failed");
         exit(1);
     }
 
-    envs[i].inner.d3d10.textureTechnique = envs[i].inner.d3d10.effect->GetTechniqueByName("TextureTechnique");
-    if ( ! envs[i].inner.d3d10.textureTechnique) {
+    env->inner.d3d10.textureTechnique = env->inner.d3d10.effect->GetTechniqueByName("TextureTechnique");
+    if ( ! env->inner.d3d10.textureTechnique) {
         SDL_Log("d3d 10 effect GetTechniqueByName(\"TextureTechnique\") failed");
         exit(1);
     }
 
-    envs[i].inner.d3d10.textureForShader = envs[i].inner.d3d10.effect->GetVariableByName("theTexture")->AsShaderResource();
-    if ( ! envs[i].inner.d3d10.textureTechnique) {
+    env->inner.d3d10.textureForShader = env->inner.d3d10.effect->GetVariableByName("theTexture")->AsShaderResource();
+    if ( ! env->inner.d3d10.textureTechnique) {
         SDL_Log("d3d 10 effect GetVariableByName(\"theTexture\")->AsShaderResource() failed");
         exit(1);
     }
@@ -632,25 +632,25 @@ technique10 TextureTechnique {
     layout[2].InstanceDataStepRate = 0;
 
     D3D10_PASS_DESC passDesc;
-    hr = envs[i].inner.d3d10.colorTechnique->GetPassByIndex(0)->GetDesc(&passDesc);
+    hr = env->inner.d3d10.colorTechnique->GetPassByIndex(0)->GetDesc(&passDesc);
     if (FAILED(hr)) {
         SDL_Log("d3d 10 technique pass GetDesc() failed");
         exit(1);
     }
 
-    hr = envs[i].inner.d3d10.device->CreateInputLayout(
+    hr = env->inner.d3d10.device->CreateInputLayout(
         layout,
         sizeof(layout) / sizeof(layout[0]),
         passDesc.pIAInputSignature,
         passDesc.IAInputSignatureSize,
-        &envs[i].inner.d3d10.layout);
+        &env->inner.d3d10.layout);
     if (FAILED(hr)) {
         SDL_Log("d3d 10 device CreateInputLayout() failed");
         exit(1);
     }
 
-    envs[i].inner.d3d10.viewMatrix = envs[i].inner.d3d10.effect->GetVariableByName("viewMatrix")->AsMatrix();
-    if ( ! envs[i].inner.d3d10.viewMatrix) {
+    env->inner.d3d10.viewMatrix = env->inner.d3d10.effect->GetVariableByName("viewMatrix")->AsMatrix();
+    if ( ! env->inner.d3d10.viewMatrix) {
         SDL_Log("unable to find 'viewMatrix' global in shader");
         exit(1);
     }
@@ -665,7 +665,7 @@ technique10 TextureTechnique {
     blendDesc.DestBlend = D3D10_BLEND_INV_SRC_ALPHA;
     blendDesc.SrcBlendAlpha = D3D10_BLEND_ONE;
     blendDesc.DestBlendAlpha = D3D10_BLEND_INV_SRC_ALPHA;
-    hr = envs[i].inner.d3d10.device->CreateBlendState(&blendDesc, &envs[i].inner.d3d10.blendModeBlend);
+    hr = env->inner.d3d10.device->CreateBlendState(&blendDesc, &env->inner.d3d10.blendModeBlend);
     if (FAILED(hr)) {
         SDL_Log("d3d10 device CreateBlendState() failed for DLR_BLENDMODE_BLEND");
         exit(1);
@@ -1159,6 +1159,7 @@ void DLR_Test_ProcessEvent(const SDL_Event & e)
     }
 }
 
+#ifndef _MSC_VER
 void DLRTest_HandleUnixSignal(int sig)
 {
     switch (sig) {
@@ -1167,6 +1168,7 @@ void DLRTest_HandleUnixSignal(int sig)
         } break;
     }
 }
+#endif
 
 int main(int argc, char ** argv) {
     for (int i = 1; i < argc; ++i) {
@@ -1286,10 +1288,8 @@ int main(int argc, char ** argv) {
 
 #if DLRTEST_D3D10
             case DLRTEST_TYPE_D3D10: {
-                if ( ! DLRTest_D3D10_Init()) {
-                    // error should already have been logged
-                    exit(1);
-                }
+                DLRTest_D3D10_Init(&envs[i]);
+				// error should already have been logged, and program-terminated, by now, if warranted
             } break;
 #endif
 
