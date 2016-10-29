@@ -15,6 +15,10 @@
 //#include <mutex>
 #include <stdio.h>
 
+#ifndef _MSC_VER
+#include <signal.h>
+#endif
+
 #define GB_MATH_IMPLEMENTATION
 #include "gb_math.h"
 
@@ -37,6 +41,7 @@ typedef enum DLR_Test_RendererType {
 enum DLRTest_Env_Flags {
     DLRTEST_ENV_DEFAULTS    = 0,
     DLRTEST_ENV_COMPARE     = (1 << 0),
+    DLRTEST_ENV_HEADLESS    = (1 << 1),
 };
 
 struct DLRTest_Env {
@@ -1154,22 +1159,36 @@ void DLR_Test_ProcessEvent(const SDL_Event & e)
     }
 }
 
+void DLRTest_HandleUnixSignal(int sig)
+{
+    switch (sig) {
+        case SIGINT: {
+            exit(1);
+        } break;
+    }
+}
+
 int main(int argc, char ** argv) {
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0) {
             printf("DL_Raster test app\n"
                    "\n"
                    "Usage: \n"
-                   "\ttest [--perf] [-n N] [-t N]\n"
+                   "\ttest [--headless] [--perf] [-n N] [-t N]\n"
                    "\n"
                    "Options:\n"
-                   "\t-n N      Run for N ticks, then quit, or -1 to run indefinitely (default: -1)\n"
-                   "\t--perf    Run in performance-testing mode, with only one window\n"
-                   "\t-t N      Log a performance measurement every N ticks (default: %d)\n"
+                   "\t--headless    Run in headless-mode (without displaying any GUIs)\n"
+                   "\t-n N          Run for N ticks, then quit, or -1 to run indefinitely (default: -1)\n"
+                   "\t--perf        Run in performance-testing mode, with only one window/renderer\n"
+                   "\t-t N          Log a performance measurement every N ticks (default: %d)\n"
                    "\n",
                    numTicksBetweenPerfMeasurements
                    );
             exit(0);
+        } else if (strcmp(argv[i], "--headless") == 0) {
+            for (int i = 0; i < SDL_arraysize(envs); ++i) {
+                envs[i].flags |= DLRTEST_ENV_HEADLESS;
+            }
         } else if (strcmp(argv[i], "--perf") == 0) {
             num_envs = 1;
         } else if (strcmp(argv[i], "-n") == 0) {
@@ -1184,40 +1203,62 @@ int main(int argc, char ** argv) {
             }
         }
     }
+    
+    // Catch Ctrl+C
+#ifndef _MSC_VER
+    struct sigaction signalHandler;
+    signalHandler.sa_handler = DLRTest_HandleUnixSignal;
+    sigemptyset(&signalHandler.sa_mask);
+    signalHandler.sa_flags = 0;
+    sigaction(SIGINT, &signalHandler, NULL);
+#endif
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        SDL_Log("Can't init SDL: %s", SDL_GetError());
-        exit(1);
+    // Init SDL, but only if we're not all-headless
+    for (int i = 0; i < num_envs; ++i) {
+        if ( ! (envs[i].flags & DLRTEST_ENV_HEADLESS)) {
+            if ( ! SDL_WasInit(0)) {
+                if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+                    SDL_Log("Can't init SDL: %s", SDL_GetError());
+                    exit(1);
+                }
+            }
+        }
     }
 
+    // Init each env
     for (int i = 0; i < num_envs; ++i) {
         int window_flags = 0;
         if (envs[i].type == DLRTEST_TYPE_OPENGL1) {
             window_flags |= SDL_WINDOW_OPENGL;
         }
 
-        envs[i].window = SDL_CreateWindow(
-            "DLRTest",
-            envs[i].window_x,
-            envs[i].window_y,
-            winW, winH,
-            window_flags
-        );
-        if ( ! envs[i].window) {
-            SDL_Log("SDL_CreateWindow failed, err=%s", SDL_GetError());
-            exit(1);
+        if ( ! (envs[i].flags & DLRTEST_ENV_HEADLESS)) {
+            envs[i].window = SDL_CreateWindow(
+                "DLRTest",
+                envs[i].window_x,
+                envs[i].window_y,
+                winW, winH,
+                window_flags
+            );
+            if ( ! envs[i].window) {
+                SDL_Log("SDL_CreateWindow failed, err=%s", SDL_GetError());
+                exit(1);
+            }
         }
+
         switch (envs[i].type) {
             case DLRTEST_TYPE_SOFTWARE: {
-                SDL_Renderer * r = SDL_CreateRenderer(envs[i].window, -1, 0);
-                if ( ! r) {
-                    SDL_Log("SDL_CreateRenderer failed, err=%s", SDL_GetError());
-                    exit(1);
-                }
-                envs[i].inner.sw.bgTex = SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, winW, winH);
-                if ( ! envs[i].inner.sw.bgTex) {
-                    SDL_Log("Can't create background texture: %s", SDL_GetError());
-                    exit(1);
+                if ( ! (envs[i].flags & DLRTEST_ENV_HEADLESS)) {
+                    SDL_Renderer * r = SDL_CreateRenderer(envs[i].window, -1, 0);
+                    if ( ! r) {
+                        SDL_Log("SDL_CreateRenderer failed, err=%s", SDL_GetError());
+                        exit(1);
+                    }
+                    envs[i].inner.sw.bgTex = SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, winW, winH);
+                    if ( ! envs[i].inner.sw.bgTex) {
+                        SDL_Log("Can't create background texture: %s", SDL_GetError());
+                        exit(1);
+                    }
                 }
                 envs[i].inner.sw.bg = SDL_CreateRGBSurface(0, winW, winH, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
                 if ( ! envs[i].inner.sw.bg) {
@@ -1369,69 +1410,71 @@ int main(int argc, char ** argv) {
             }
 
             // Present rendered scene
-            switch (env->type) {
-                case DLRTEST_TYPE_SOFTWARE: {
-                    SDL_Renderer * r = SDL_GetRenderer(envs[i].window);
-                    SDL_UpdateTexture(env->inner.sw.bgTex, NULL, env->inner.sw.bg->pixels, env->inner.sw.bg->pitch);
-                    SDL_SetRenderDrawColor(r, 0, 0, 0, 0xff);
-                    SDL_RenderClear(r);
-                    SDL_RenderCopy(r, envs[i].inner.sw.bgTex, NULL, NULL);
+            if ( ! (envs[i].flags & DLRTEST_ENV_HEADLESS)) {
+                switch (env->type) {
+                    case DLRTEST_TYPE_SOFTWARE: {
+                        SDL_Renderer * r = SDL_GetRenderer(envs[i].window);
+                        SDL_UpdateTexture(env->inner.sw.bgTex, NULL, env->inner.sw.bg->pixels, env->inner.sw.bg->pitch);
+                        SDL_SetRenderDrawColor(r, 0, 0, 0, 0xff);
+                        SDL_RenderClear(r);
+                        SDL_RenderCopy(r, envs[i].inner.sw.bgTex, NULL, NULL);
 
-                    // Draw locked position
-                    if (DLRTEST_IS_LOCKED()) {
-                        const int w = 15;
-                        const int h = 15;
-                        SDL_Rect box;
-                        if ( ! envs[i].inner.sw.crosshairs) {
-                            SDL_Surface * src = SDL_CreateRGBSurface(0, w, h, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-                            if (src) {
-                                // Clear entire surface:
-                                SDL_FillRect(src, NULL, 0x00000000);
+                        // Draw locked position
+                        if (DLRTEST_IS_LOCKED()) {
+                            const int w = 15;
+                            const int h = 15;
+                            SDL_Rect box;
+                            if ( ! envs[i].inner.sw.crosshairs) {
+                                SDL_Surface * src = SDL_CreateRGBSurface(0, w, h, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+                                if (src) {
+                                    // Clear entire surface:
+                                    SDL_FillRect(src, NULL, 0x00000000);
 
-                                // Draw vertical bar:
-                                box = {w/2, 0, 1, h};
-                                SDL_FillRect(src, &box, 0xffff0000);
+                                    // Draw vertical bar:
+                                    box = {w/2, 0, 1, h};
+                                    SDL_FillRect(src, &box, 0xffff0000);
 
-                                // Draw horizontal bar:
-                                box = {0, h/2, w, 1};
-                                SDL_FillRect(src, &box, 0xffff0000);
+                                    // Draw horizontal bar:
+                                    box = {0, h/2, w, 1};
+                                    SDL_FillRect(src, &box, 0xffff0000);
 
-                                // Draw outside of inner box:
-                                box = {(w/2)-3, (h/2)-3, 7, 7};
-                                SDL_FillRect(src, &box, 0xffff0000);
+                                    // Draw outside of inner box:
+                                    box = {(w/2)-3, (h/2)-3, 7, 7};
+                                    SDL_FillRect(src, &box, 0xffff0000);
 
-                                // Clear inside of inner box:
-                                box = {(w/2)-1, (h/2)-1, 3, 3};
-                                SDL_FillRect(src, &box, 0x00000000);
+                                    // Clear inside of inner box:
+                                    box = {(w/2)-1, (h/2)-1, 3, 3};
+                                    SDL_FillRect(src, &box, 0x00000000);
 
-                                // Convert to texture:
-                                envs[i].inner.sw.crosshairs = SDL_CreateTextureFromSurface(r, src);
-                                SDL_FreeSurface(src);
+                                    // Convert to texture:
+                                    envs[i].inner.sw.crosshairs = SDL_CreateTextureFromSurface(r, src);
+                                    SDL_FreeSurface(src);
+                                }
+                            }
+                            if (envs[i].inner.sw.crosshairs) {
+                                box = {lockedX-(w/2), lockedY-(h/2), w, h};
+                                SDL_RenderCopy(r, envs[i].inner.sw.crosshairs, NULL, &box);
                             }
                         }
-                        if (envs[i].inner.sw.crosshairs) {
-                            box = {lockedX-(w/2), lockedY-(h/2), w, h};
-                            SDL_RenderCopy(r, envs[i].inner.sw.crosshairs, NULL, &box);
+
+                        SDL_RenderPresent(r);
+                    } break;
+
+                    case DLRTEST_TYPE_OPENGL1: {
+                        SDL_GL_SwapWindow(envs[i].window);
+                    } break;
+
+                    case DLRTEST_TYPE_D3D10: {
+    #if DLRTEST_D3D10
+                        HRESULT hr = envs[i].inner.d3d10.swapChain->Present(0, 0);   // present without vsymc
+                        if (FAILED(hr)) {
+                            SDL_Log("swap chain Present() failed");
+                            exit(1);
                         }
-                    }
-
-                    SDL_RenderPresent(r);
-                } break;
-
-                case DLRTEST_TYPE_OPENGL1: {
-                    SDL_GL_SwapWindow(envs[i].window);
-                } break;
-
-                case DLRTEST_TYPE_D3D10: {
-#if DLRTEST_D3D10
-                    HRESULT hr = envs[i].inner.d3d10.swapChain->Present(0, 0);   // present without vsymc
-                    if (FAILED(hr)) {
-                        SDL_Log("swap chain Present() failed");
-                        exit(1);
-                    }
-#endif
-                } break;
-            }
+    #endif
+                    } break;
+                }
+            } // end of headless check
         }
 
         if (numTicksToQuit > 0) {
