@@ -21,7 +21,7 @@
 #define DL_RASTER_H
 
 typedef struct DLR_Fixed {
-	int32_t data;
+    int32_t data;
 } DLR_Fixed;
 
 typedef enum {

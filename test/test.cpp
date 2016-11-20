@@ -1173,246 +1173,246 @@ void DLRTest_HandleUnixSignal(int sig)
 #endif
 
 bool DLRTest_EqualsFloat(float a, float b) {
-	const float threshold = 0.0001f;
-	return (a > (b - threshold)) && (a < (b + threshold));
+    const float threshold = 0.0001f;
+    return (a > (b - threshold)) && (a < (b + threshold));
 }
 
 void DLRTest_RunFixedPointTests() {
-	// comparison
-	{
-		DLR_Fixed a;
+    // comparison
+    {
+        DLR_Fixed a;
 
-		a = DLR_FixedFromFloat(1.5);
-		DLRTest_Assert(a == a);
-		DLRTest_Assert(!(a != a));
-		DLRTest_Assert(!(a < a));
-		DLRTest_Assert(!(a > a));
-		DLRTest_Assert(a <= a);
-		DLRTest_Assert(a >= a);
+        a = DLR_FixedFromFloat(1.5);
+        DLRTest_Assert(a == a);
+        DLRTest_Assert(!(a != a));
+        DLRTest_Assert(!(a < a));
+        DLRTest_Assert(!(a > a));
+        DLRTest_Assert(a <= a);
+        DLRTest_Assert(a >= a);
 
-		a = DLR_FixedFromFloat(-1.5);
-		DLRTest_Assert(a == a);
-		DLRTest_Assert(!(a != a));
-		DLRTest_Assert(!(a < a));
-		DLRTest_Assert(!(a > a));
-		DLRTest_Assert(a <= a);
-		DLRTest_Assert(a >= a);
-	}
+        a = DLR_FixedFromFloat(-1.5);
+        DLRTest_Assert(a == a);
+        DLRTest_Assert(!(a != a));
+        DLRTest_Assert(!(a < a));
+        DLRTest_Assert(!(a > a));
+        DLRTest_Assert(a <= a);
+        DLRTest_Assert(a >= a);
+    }
 
-	{
-		DLR_Fixed l, g;	// 'l'esser and 'g'reater
-		l = DLR_FixedFromFloat(1.5f);
-		g = DLR_FixedFromFloat(3.2f);
-		DLRTest_Assert(!(l == g));
-		DLRTest_Assert(!(g == l));
-		DLRTest_Assert(l != g);
-		DLRTest_Assert(g != l);
-		DLRTest_Assert(l < g);
-		DLRTest_Assert(!(g < l));
-		DLRTest_Assert(!(l > g));
-		DLRTest_Assert(g > l);
-		DLRTest_Assert(l <= g);
-		DLRTest_Assert(!(g <= l));
-		DLRTest_Assert(!(l >= g));
-		DLRTest_Assert(g >= l);
+    {
+        DLR_Fixed l, g; // 'l'esser and 'g'reater
+        l = DLR_FixedFromFloat(1.5f);
+        g = DLR_FixedFromFloat(3.2f);
+        DLRTest_Assert(!(l == g));
+        DLRTest_Assert(!(g == l));
+        DLRTest_Assert(l != g);
+        DLRTest_Assert(g != l);
+        DLRTest_Assert(l < g);
+        DLRTest_Assert(!(g < l));
+        DLRTest_Assert(!(l > g));
+        DLRTest_Assert(g > l);
+        DLRTest_Assert(l <= g);
+        DLRTest_Assert(!(g <= l));
+        DLRTest_Assert(!(l >= g));
+        DLRTest_Assert(g >= l);
 
-		l = DLR_FixedFromFloat(-1.5f);
-		g = DLR_FixedFromFloat(3.2f);
-		DLRTest_Assert(!(l == g));
-		DLRTest_Assert(!(g == l));
-		DLRTest_Assert(l != g);
-		DLRTest_Assert(g != l);
-		DLRTest_Assert(l < g);
-		DLRTest_Assert(!(g < l));
-		DLRTest_Assert(!(l > g));
-		DLRTest_Assert(g > l);
-		DLRTest_Assert(l <= g);
-		DLRTest_Assert(!(g <= l));
-		DLRTest_Assert(!(l >= g));
-		DLRTest_Assert(g >= l);
+        l = DLR_FixedFromFloat(-1.5f);
+        g = DLR_FixedFromFloat(3.2f);
+        DLRTest_Assert(!(l == g));
+        DLRTest_Assert(!(g == l));
+        DLRTest_Assert(l != g);
+        DLRTest_Assert(g != l);
+        DLRTest_Assert(l < g);
+        DLRTest_Assert(!(g < l));
+        DLRTest_Assert(!(l > g));
+        DLRTest_Assert(g > l);
+        DLRTest_Assert(l <= g);
+        DLRTest_Assert(!(g <= l));
+        DLRTest_Assert(!(l >= g));
+        DLRTest_Assert(g >= l);
 
-		l = DLR_FixedFromFloat(-1.5f);
-		g = DLR_FixedFromFloat(0.f);
-		DLRTest_Assert(!(l == g));
-		DLRTest_Assert(!(g == l));
-		DLRTest_Assert(l != g);
-		DLRTest_Assert(g != l);
-		DLRTest_Assert(l < g);
-		DLRTest_Assert(!(g < l));
-		DLRTest_Assert(!(l > g));
-		DLRTest_Assert(g > l);
-		DLRTest_Assert(l <= g);
-		DLRTest_Assert(!(g <= l));
-		DLRTest_Assert(!(l >= g));
-		DLRTest_Assert(g >= l);
+        l = DLR_FixedFromFloat(-1.5f);
+        g = DLR_FixedFromFloat(0.f);
+        DLRTest_Assert(!(l == g));
+        DLRTest_Assert(!(g == l));
+        DLRTest_Assert(l != g);
+        DLRTest_Assert(g != l);
+        DLRTest_Assert(l < g);
+        DLRTest_Assert(!(g < l));
+        DLRTest_Assert(!(l > g));
+        DLRTest_Assert(g > l);
+        DLRTest_Assert(l <= g);
+        DLRTest_Assert(!(g <= l));
+        DLRTest_Assert(!(l >= g));
+        DLRTest_Assert(g >= l);
 
-		l = DLR_FixedFromFloat(-1.5f);
-		g = DLR_FixedFromFloat(-1.2f);
-		DLRTest_Assert(!(l == g));
-		DLRTest_Assert(!(g == l));
-		DLRTest_Assert(l != g);
-		DLRTest_Assert(g != l);
-		DLRTest_Assert(l < g);
-		DLRTest_Assert(!(g < l));
-		DLRTest_Assert(!(l > g));
-		DLRTest_Assert(g > l);
-		DLRTest_Assert(l <= g);
-		DLRTest_Assert(!(g <= l));
-		DLRTest_Assert(!(l >= g));
-		DLRTest_Assert(g >= l);
-	}
+        l = DLR_FixedFromFloat(-1.5f);
+        g = DLR_FixedFromFloat(-1.2f);
+        DLRTest_Assert(!(l == g));
+        DLRTest_Assert(!(g == l));
+        DLRTest_Assert(l != g);
+        DLRTest_Assert(g != l);
+        DLRTest_Assert(l < g);
+        DLRTest_Assert(!(g < l));
+        DLRTest_Assert(!(l > g));
+        DLRTest_Assert(g > l);
+        DLRTest_Assert(l <= g);
+        DLRTest_Assert(!(g <= l));
+        DLRTest_Assert(!(l >= g));
+        DLRTest_Assert(g >= l);
+    }
 
-	// division
-	{
-		DLR_Fixed a, b;
+    // division
+    {
+        DLR_Fixed a, b;
 
-		a = DLR_FixedFromFloat(33.33f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / a), 1.f));
+        a = DLR_FixedFromFloat(33.33f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / a), 1.f));
 
-		a = DLR_FixedFromFloat(-33.33f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / a), 1.f));
+        a = DLR_FixedFromFloat(-33.33f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / a), 1.f));
 
-		a = DLR_FixedFromFloat(33.33f);
-		b = DLR_FixedFromFloat(3.f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / b), 11.11f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b / a), 3.f/33.33f));
+        a = DLR_FixedFromFloat(33.33f);
+        b = DLR_FixedFromFloat(3.f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / b), 11.11f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b / a), 3.f/33.33f));
 
-		a = DLR_FixedFromFloat(-33.33f);
-		b = DLR_FixedFromFloat(3.f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / b), -11.11f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b / a), 3.f/-33.33f));
+        a = DLR_FixedFromFloat(-33.33f);
+        b = DLR_FixedFromFloat(3.f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / b), -11.11f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b / a), 3.f/-33.33f));
 
-		a = DLR_FixedFromFloat(33.33f);
-		b = DLR_FixedFromFloat(-3.f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / b), -11.11f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b / a), -3.f/33.33f));
+        a = DLR_FixedFromFloat(33.33f);
+        b = DLR_FixedFromFloat(-3.f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / b), -11.11f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b / a), -3.f/33.33f));
 
-		a = DLR_FixedFromFloat(-33.33f);
-		b = DLR_FixedFromFloat(-3.f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / b), 11.11f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b / a), -3.f/-33.33f));
-	}
+        a = DLR_FixedFromFloat(-33.33f);
+        b = DLR_FixedFromFloat(-3.f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a / b), 11.11f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b / a), -3.f/-33.33f));
+    }
 
-	// multiplication
-	{
-		DLR_Fixed a, b;
+    // multiplication
+    {
+        DLR_Fixed a, b;
 
-		a = DLR_FixedFromFloat(1.5f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * a), 2.25f));
+        a = DLR_FixedFromFloat(1.5f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * a), 2.25f));
 
-		a = DLR_FixedFromFloat(-1.5f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * a), 2.25f));
+        a = DLR_FixedFromFloat(-1.5f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * a), 2.25f));
 
-		a = DLR_FixedFromFloat(1.5f);
-		b = DLR_FixedFromFloat(3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * b), 4.8f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b * a), 4.8f));
-		DLRTest_Assert((a * b) == (b * a));
+        a = DLR_FixedFromFloat(1.5f);
+        b = DLR_FixedFromFloat(3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * b), 4.8f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b * a), 4.8f));
+        DLRTest_Assert((a * b) == (b * a));
 
-		a = DLR_FixedFromFloat(-1.5f);
-		b = DLR_FixedFromFloat(3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * b), -4.8f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b * a), -4.8f));
-		DLRTest_Assert((a * b) == (b * a));
+        a = DLR_FixedFromFloat(-1.5f);
+        b = DLR_FixedFromFloat(3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * b), -4.8f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b * a), -4.8f));
+        DLRTest_Assert((a * b) == (b * a));
 
-		a = DLR_FixedFromFloat(1.5f);
-		b = DLR_FixedFromFloat(-3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * b), -4.8f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b * a), -4.8f));
-		DLRTest_Assert((a * b) == (b * a));
+        a = DLR_FixedFromFloat(1.5f);
+        b = DLR_FixedFromFloat(-3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * b), -4.8f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b * a), -4.8f));
+        DLRTest_Assert((a * b) == (b * a));
 
-		a = DLR_FixedFromFloat(-1.5f);
-		b = DLR_FixedFromFloat(-3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * b), 4.8f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b * a), 4.8f));
-		DLRTest_Assert((a * b) == (b * a));
-	}
+        a = DLR_FixedFromFloat(-1.5f);
+        b = DLR_FixedFromFloat(-3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a * b), 4.8f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b * a), 4.8f));
+        DLRTest_Assert((a * b) == (b * a));
+    }
 
-	// subtraction
-	{
-		DLR_Fixed a, b;
+    // subtraction
+    {
+        DLR_Fixed a, b;
 
-		a = DLR_FixedFromFloat(1.5f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - a), 0.0f));
+        a = DLR_FixedFromFloat(1.5f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - a), 0.0f));
 
-		a = DLR_FixedFromFloat(-1.5f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - a), 0.0f));
+        a = DLR_FixedFromFloat(-1.5f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - a), 0.0f));
 
-		a = DLR_FixedFromFloat(1.5f);
-		b = DLR_FixedFromFloat(3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - b), -1.7f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b - a), 1.7f));
+        a = DLR_FixedFromFloat(1.5f);
+        b = DLR_FixedFromFloat(3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - b), -1.7f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b - a), 1.7f));
 
-		a = DLR_FixedFromFloat(-1.5f);
-		b = DLR_FixedFromFloat(3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - b), -4.7f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b - a), 4.7f));
+        a = DLR_FixedFromFloat(-1.5f);
+        b = DLR_FixedFromFloat(3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - b), -4.7f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b - a), 4.7f));
 
-		a = DLR_FixedFromFloat(1.5f);
-		b = DLR_FixedFromFloat(-3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - b), 4.7f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b - a), -4.7f));
+        a = DLR_FixedFromFloat(1.5f);
+        b = DLR_FixedFromFloat(-3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - b), 4.7f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b - a), -4.7f));
 
-		a = DLR_FixedFromFloat(-1.5f);
-		b = DLR_FixedFromFloat(-3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - b), 1.7f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b - a), -1.7f));
-	}
+        a = DLR_FixedFromFloat(-1.5f);
+        b = DLR_FixedFromFloat(-3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a - b), 1.7f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b - a), -1.7f));
+    }
 
-	// addition
-	{
-		DLR_Fixed a, b;
+    // addition
+    {
+        DLR_Fixed a, b;
 
-		a = DLR_FixedFromFloat(1.5f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + a), 3.0f));
+        a = DLR_FixedFromFloat(1.5f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + a), 3.0f));
 
-		a = DLR_FixedFromFloat(-1.5f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + a), -3.0f));
+        a = DLR_FixedFromFloat(-1.5f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + a), -3.0f));
 
-		a = DLR_FixedFromFloat(1.5f);
-		b = DLR_FixedFromFloat(3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + b), 4.7f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b + a), 4.7f));
-		DLRTest_Assert(a + b == b + a);
+        a = DLR_FixedFromFloat(1.5f);
+        b = DLR_FixedFromFloat(3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + b), 4.7f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b + a), 4.7f));
+        DLRTest_Assert(a + b == b + a);
 
-		a = DLR_FixedFromFloat(-1.5f);
-		b = DLR_FixedFromFloat(3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + b), 1.7f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b + a), 1.7f));
-		DLRTest_Assert(a + b == b + a);
+        a = DLR_FixedFromFloat(-1.5f);
+        b = DLR_FixedFromFloat(3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + b), 1.7f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b + a), 1.7f));
+        DLRTest_Assert(a + b == b + a);
 
-		a = DLR_FixedFromFloat(1.5f);
-		b = DLR_FixedFromFloat(-3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + b), -1.7f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b + a), -1.7f));
-		DLRTest_Assert(a + b == b + a);
+        a = DLR_FixedFromFloat(1.5f);
+        b = DLR_FixedFromFloat(-3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + b), -1.7f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b + a), -1.7f));
+        DLRTest_Assert(a + b == b + a);
 
-		a = DLR_FixedFromFloat(-1.5f);
-		b = DLR_FixedFromFloat(-3.2f);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + b), -4.7f));
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b + a), -4.7f));
-		DLRTest_Assert(a + b == b + a);
-	}
+        a = DLR_FixedFromFloat(-1.5f);
+        b = DLR_FixedFromFloat(-3.2f);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(a + b), -4.7f));
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b + a), -4.7f));
+        DLRTest_Assert(a + b == b + a);
+    }
 
-	// conversion
-	{
-		float a;
-		DLR_Fixed b;
+    // conversion
+    {
+        float a;
+        DLR_Fixed b;
 
-		a = -1.5f;
-		b = DLR_FixedFromFloat(a);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b), a));
-		DLRTest_Assert(b == DLR_FixedFromFloat(DLR_FloatFromFixed(b)));
+        a = -1.5f;
+        b = DLR_FixedFromFloat(a);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b), a));
+        DLRTest_Assert(b == DLR_FixedFromFloat(DLR_FloatFromFixed(b)));
 
-		a = 1.5f;
-		b = DLR_FixedFromFloat(a);
-		DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b), a));
-		DLRTest_Assert(b == DLR_FixedFromFloat(DLR_FloatFromFixed(b)));
-	}
+        a = 1.5f;
+        b = DLR_FixedFromFloat(a);
+        DLRTest_Assert(DLRTest_EqualsFloat(DLR_FloatFromFixed(b), a));
+        DLRTest_Assert(b == DLR_FixedFromFloat(DLR_FloatFromFixed(b)));
+    }
 }
 
 int main(int argc, char ** argv) {
-	bool run_fixed_point_tests = true;
+    bool run_fixed_point_tests = true;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0) {
             printf("DL_Raster test app\n"
@@ -1435,7 +1435,7 @@ int main(int argc, char ** argv) {
             }
         } else if (strcmp(argv[i], "--perf") == 0) {
             num_envs = 1;
-			run_fixed_point_tests = false;
+            run_fixed_point_tests = false;
         } else if (strcmp(argv[i], "-n") == 0) {
             if ((i + 1) < argc) {
                 numTicksToQuit = atoi(argv[i+1]);
@@ -1458,10 +1458,10 @@ int main(int argc, char ** argv) {
     sigaction(SIGINT, &signalHandler, NULL);
 #endif
 
-	// Run fixed-point tests, first
-	if (run_fixed_point_tests) {
-		DLRTest_RunFixedPointTests();
-	}
+    // Run fixed-point tests, first
+    if (run_fixed_point_tests) {
+        DLRTest_RunFixedPointTests();
+    }
 
     // Init SDL, but only if we're not all-headless
     for (int i = 0; i < num_envs; ++i) {
@@ -1537,7 +1537,7 @@ int main(int argc, char ** argv) {
 #if DLRTEST_D3D10
             case DLRTEST_TYPE_D3D10: {
                 DLRTest_D3D10_Init(&envs[i]);
-				// error should already have been logged, and program-terminated, by now, if warranted
+                // error should already have been logged, and program-terminated, by now, if warranted
             } break;
 #endif
 
