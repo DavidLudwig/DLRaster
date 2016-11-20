@@ -20,6 +20,10 @@
 #ifndef DL_RASTER_H
 #define DL_RASTER_H
 
+typedef struct DLR_Fixed {
+	int32_t data;
+} DLR_Fixed;
+
 typedef enum {
     DLR_BLENDMODE_NONE      = 0,
     DLR_BLENDMODE_BLEND     = 1,    /* alpha blending
@@ -115,6 +119,21 @@ DLR_EXTERN_C void DLR_DrawTriangles(
     DLR_State * state,
     DLR_Vertex * vertices,
     size_t vertexCount);
+
+#ifdef __cplusplus
+inline DLR_Fixed DLR_FixedFromFloat(float src) { return { (int32_t)(src * (1 << 16)) }; }
+inline float DLR_FloatFromFixed(DLR_Fixed src) { return ((float)(src.data)) / float(1 << 16); }
+inline DLR_Fixed operator+(DLR_Fixed a, DLR_Fixed b) { return { a.data + b.data }; }
+inline DLR_Fixed operator-(DLR_Fixed a, DLR_Fixed b) { return { a.data - b.data }; }
+inline DLR_Fixed operator/(DLR_Fixed a, DLR_Fixed b) { return { (int32_t)(((int64_t)a.data << 16) / (int64_t)b.data) }; }
+inline DLR_Fixed operator*(DLR_Fixed a, DLR_Fixed b) { return { (int32_t)(((int64_t)a.data * (int64_t)b.data) >> 16) }; }
+inline bool operator==(DLR_Fixed a, DLR_Fixed b) { return a.data == b.data; }
+inline bool operator!=(DLR_Fixed a, DLR_Fixed b) { return a.data != b.data; }
+inline bool operator<(DLR_Fixed a, DLR_Fixed b) { return a.data < b.data; }
+inline bool operator>(DLR_Fixed a, DLR_Fixed b) { return a.data > b.data; }
+inline bool operator<=(DLR_Fixed a, DLR_Fixed b) { return a.data <= b.data; }
+inline bool operator>=(DLR_Fixed a, DLR_Fixed b) { return a.data >= b.data; }
+#endif
 
 #endif // ifndef DL_RASTER_H
 
