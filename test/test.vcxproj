@@ -95,6 +95,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\DL_Raster.h" />
     <ClInclude Include="gb_math.h" />
   </ItemGroup>
   <ItemGroup>

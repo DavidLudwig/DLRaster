@@ -11,7 +11,7 @@ project "test"
     kind "ConsoleApp"
     language "C++"
 
-    files { "*.h", "*.cpp" }
+    files { "*.h", "*.cpp", "../DL_Raster.h" }
     includedirs { "..", "external/SDL2/include" }
 
     filter { "system:macosx" }
