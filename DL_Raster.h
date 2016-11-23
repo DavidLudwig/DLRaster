@@ -244,9 +244,7 @@ static DLR_Color<Uint8> DLR_Round(DLR_Color<DLR_Number> c) {
 
 template <typename DLR_Number, typename DLR_Vertex>
 DLR_Color<DLR_Number> & DLR_VertexColor(DLR_Vertex & v) {
-    DLR_Number * cptr1 = &(v.a);
-    DLR_Color<DLR_Number> * cptr2 = (DLR_Color<DLR_Number> *) cptr1;
-    return * cptr2;
+    return * (DLR_Color<DLR_Number> *) &(v.a);
 }
 
 //DLR_Float DLR_CalculateOrientation(DLR_VertexX a, DLR_VertexX b, DLR_VertexX c) {
