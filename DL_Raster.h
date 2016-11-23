@@ -228,10 +228,10 @@ static Uint32 DLR_Join(DLR_Color<Uint8> c) {
 template <typename DLR_Number>
 static DLR_Color<Uint8> DLR_Round(DLR_Color<DLR_Number> c) {
     return {
-        (Uint8)(int)(c.A + (DLR_Number)0.5f),
-        (Uint8)(int)(c.R + (DLR_Number)0.5f),
-        (Uint8)(int)(c.G + (DLR_Number)0.5f),
-        (Uint8)(int)(c.B + (DLR_Number)0.5f),
+        (Uint8)(c.A + (DLR_Number)0.5f),
+        (Uint8)(c.R + (DLR_Number)0.5f),
+        (Uint8)(c.G + (DLR_Number)0.5f),
+        (Uint8)(c.B + (DLR_Number)0.5f),
     };
 }
 
