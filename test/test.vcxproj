@@ -102,6 +102,9 @@
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="DL_Raster-MSVC_Debug_Helpers.natvis" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="external\SDL2\VisualC\SDL\SDL.vcxproj">
       <Project>{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}</Project>
     </ProjectReference>
