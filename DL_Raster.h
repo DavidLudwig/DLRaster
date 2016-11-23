@@ -356,7 +356,6 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     DLR_Assert(ntexX >= 0 && ntexX < state->texture.w);
                     DLR_Assert(ntexY >= 0 && ntexY < state->texture.h);
                     ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
-                    DLR_Color<DLR_Number> tmpColor = (DLR_Color<DLR_Number>)ntexC;
                     ftexC = (DLR_Color<DLR_Number>)ntexC / (DLR_Number)255;
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
                         ffinalC = ftexC * fincomingC;
