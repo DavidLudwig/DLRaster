@@ -20,9 +20,37 @@
 #ifndef DL_RASTER_H
 #define DL_RASTER_H
 
+#define DLR_FIXED_PRECISION 8
+
 typedef struct DLR_Fixed {
     int32_t data;
+
+#ifdef __cplusplus
+    DLR_Fixed() {}
+    explicit DLR_Fixed(float src) { data = (int32_t)(src * (1 << DLR_FIXED_PRECISION)); }
+    explicit DLR_Fixed(double src) { data = (int32_t)(src * (1 << DLR_FIXED_PRECISION)); }
+    explicit DLR_Fixed(uint8_t src) { data = ((int32_t)src) << DLR_FIXED_PRECISION; }
+    explicit DLR_Fixed(int src) { data = ((int32_t)src) << DLR_FIXED_PRECISION; }
+
+    explicit operator int() const { return (int)(data >> DLR_FIXED_PRECISION); }
+    explicit operator uint8_t() const { return (uint8_t)(int)(data >> DLR_FIXED_PRECISION); }
+    explicit operator float() const { return ((float)(data)) / float(1 << DLR_FIXED_PRECISION); }
+#endif
 } DLR_Fixed;
+
+#ifdef __cplusplus
+inline DLR_Fixed operator+(DLR_Fixed a, DLR_Fixed b) { DLR_Fixed c; c.data = a.data + b.data; return c; }
+inline DLR_Fixed operator-(DLR_Fixed a, DLR_Fixed b) { DLR_Fixed c; c.data = a.data - b.data; return c; }
+inline DLR_Fixed operator/(DLR_Fixed a, DLR_Fixed b) { DLR_Fixed c; c.data = (int32_t)(((int64_t)a.data << DLR_FIXED_PRECISION) / (int64_t)b.data); return c; }
+inline DLR_Fixed operator*(DLR_Fixed a, DLR_Fixed b) { DLR_Fixed c; c.data = (int32_t)(((int64_t)a.data * (int64_t)b.data) >> DLR_FIXED_PRECISION); return c; }
+inline bool operator==(DLR_Fixed a, DLR_Fixed b) { return a.data == b.data; }
+inline bool operator!=(DLR_Fixed a, DLR_Fixed b) { return a.data != b.data; }
+inline bool operator<(DLR_Fixed a, DLR_Fixed b) { return a.data < b.data; }
+inline bool operator>(DLR_Fixed a, DLR_Fixed b) { return a.data > b.data; }
+inline bool operator<=(DLR_Fixed a, DLR_Fixed b) { return a.data <= b.data; }
+inline bool operator>=(DLR_Fixed a, DLR_Fixed b) { return a.data >= b.data; }
+#endif
+
 
 typedef enum {
     DLR_BLENDMODE_NONE      = 0,
@@ -41,21 +69,33 @@ typedef enum {
 
 typedef double DLR_Float;       // huh, double can be faster than float, at least on a high-end-ish x64 CPU
 
-typedef struct DLR_Point {
-    DLR_Float x;
-    DLR_Float y;
-} DLR_Point;
+typedef struct DLR_PointX {
+    DLR_Fixed x;
+    DLR_Fixed y;
+} DLR_PointX;
 
-typedef struct DLR_Vertex {
-    DLR_Float x;
-    DLR_Float y;
-    DLR_Float a;
-    DLR_Float r;
-    DLR_Float g;
-    DLR_Float b;
-    DLR_Float uv;
-    DLR_Float uw;
-} DLR_Vertex;
+typedef struct DLR_VertexX {
+    DLR_Fixed x;
+    DLR_Fixed y;
+    DLR_Fixed a;
+    DLR_Fixed r;
+    DLR_Fixed g;
+    DLR_Fixed b;
+    DLR_Fixed uv;
+    DLR_Fixed uw;
+} DLR_VertexX;
+
+typedef struct DLR_VertexD {
+    double x;
+    double y;
+    double a;
+    double r;
+    double g;
+    double b;
+    double uv;
+    double uw;
+} DLR_VertexD;
+
 
 typedef struct DLR_SurfaceRef {
     void * pixels;
@@ -109,31 +149,21 @@ DLR_EXTERN_C void DLR_Clear(
     DLR_State * state,
     Uint32 color);
 
-DLR_EXTERN_C void DLR_DrawTriangle(
+DLR_EXTERN_C void DLR_DrawTriangleX(
     DLR_State * state,
-    DLR_Vertex v0,
-    DLR_Vertex v1,
-    DLR_Vertex v2);
+    DLR_VertexX v0,
+    DLR_VertexX v1,
+    DLR_VertexX v2);
 
-DLR_EXTERN_C void DLR_DrawTriangles(
+DLR_EXTERN_C void DLR_DrawTrianglesX(
     DLR_State * state,
-    DLR_Vertex * vertices,
+    DLR_VertexX * vertices,
     size_t vertexCount);
 
-#ifdef __cplusplus
-inline DLR_Fixed DLR_FixedFromFloat(float src) { return { (int32_t)(src * (1 << 16)) }; }
-inline float DLR_FloatFromFixed(DLR_Fixed src) { return ((float)(src.data)) / float(1 << 16); }
-inline DLR_Fixed operator+(DLR_Fixed a, DLR_Fixed b) { return { a.data + b.data }; }
-inline DLR_Fixed operator-(DLR_Fixed a, DLR_Fixed b) { return { a.data - b.data }; }
-inline DLR_Fixed operator/(DLR_Fixed a, DLR_Fixed b) { return { (int32_t)(((int64_t)a.data << 16) / (int64_t)b.data) }; }
-inline DLR_Fixed operator*(DLR_Fixed a, DLR_Fixed b) { return { (int32_t)(((int64_t)a.data * (int64_t)b.data) >> 16) }; }
-inline bool operator==(DLR_Fixed a, DLR_Fixed b) { return a.data == b.data; }
-inline bool operator!=(DLR_Fixed a, DLR_Fixed b) { return a.data != b.data; }
-inline bool operator<(DLR_Fixed a, DLR_Fixed b) { return a.data < b.data; }
-inline bool operator>(DLR_Fixed a, DLR_Fixed b) { return a.data > b.data; }
-inline bool operator<=(DLR_Fixed a, DLR_Fixed b) { return a.data <= b.data; }
-inline bool operator>=(DLR_Fixed a, DLR_Fixed b) { return a.data >= b.data; }
-#endif
+DLR_EXTERN_C void DLR_DrawTrianglesD(
+    DLR_State * state,
+    DLR_VertexD * vertices,
+    size_t vertexCount);
 
 #endif // ifndef DL_RASTER_H
 
@@ -195,14 +225,16 @@ static Uint32 DLR_Join(DLR_Color<Uint8> c) {
     return DLR_JoinARGB32(c.A, c.R, c.G, c.B);
 }
 
-static DLR_Color<Uint8> DLR_Round(DLR_Color<DLR_Float> c) {
+template <typename DLR_Number>
+static DLR_Color<Uint8> DLR_Round(DLR_Color<DLR_Number> c) {
     return {
-        (Uint8)(c.A + 0.5),
-        (Uint8)(c.R + 0.5),
-        (Uint8)(c.G + 0.5),
-        (Uint8)(c.B + 0.5),
+        (Uint8)(int)(c.A + (DLR_Number)0.5f),
+        (Uint8)(int)(c.R + (DLR_Number)0.5f),
+        (Uint8)(int)(c.G + (DLR_Number)0.5f),
+        (Uint8)(int)(c.B + (DLR_Number)0.5f),
     };
 }
+
 
 #define DLR_AssertValidColor8888(C) \
     DLR_Assert(C.A >= 0 && C.A <= 255); \
@@ -210,25 +242,27 @@ static DLR_Color<Uint8> DLR_Round(DLR_Color<DLR_Float> c) {
     DLR_Assert(C.G >= 0 && C.G <= 255); \
     DLR_Assert(C.B >= 0 && C.B <= 255);
 
-DLR_Color<DLR_Float> & DLR_VertexColor(DLR_Vertex & v) {
-    DLR_Float * cptr1 = &(v.a);
-    DLR_Color<DLR_Float> * cptr2 = (DLR_Color<DLR_Float> *) cptr1;
+template <typename DLR_Number, typename DLR_Vertex>
+DLR_Color<DLR_Number> & DLR_VertexColor(DLR_Vertex & v) {
+    DLR_Number * cptr1 = &(v.a);
+    DLR_Color<DLR_Number> * cptr2 = (DLR_Color<DLR_Number> *) cptr1;
     return * cptr2;
 }
 
-//DLR_Float DLR_CalculateOrientation(DLR_Vertex a, DLR_Vertex b, DLR_Vertex c) {
+//DLR_Float DLR_CalculateOrientation(DLR_VertexX a, DLR_VertexX b, DLR_VertexX c) {
 //    //return (b.x-a.x) * (c.y-a.y) - (b.y-a.y) * (c.x-a.x));
 //    return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
 //}
 
+template <typename DLR_Number, typename DLR_Vertex>
 static void DLR_CalculateBarycentricCoordinates(
     DLR_Vertex p,
     DLR_Vertex a,
     DLR_Vertex b,
     DLR_Vertex c,
-    DLR_Float *lambdaA,
-    DLR_Float *lambdaB,
-    DLR_Float *lambdaC)
+    DLR_Number *lambdaA,
+    DLR_Number *lambdaB,
+    DLR_Number *lambdaC)
 {
     *lambdaA =
         ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) /
@@ -238,17 +272,18 @@ static void DLR_CalculateBarycentricCoordinates(
         ((c.y - a.y) * (p.x - c.x) + (a.x - c.x) * (p.y - c.y)) /
         ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
 
-    *lambdaC = 1. - *lambdaA - *lambdaB;
+    *lambdaC = (DLR_Number)1.f - *lambdaA - *lambdaB;
 }
 
-static inline bool DLR_WithinEdgeAreaClockwise(DLR_Float barycentric, DLR_Float edgeX, DLR_Float edgeY)
+template <typename DLR_Number>
+static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Number edgeX, DLR_Number edgeY)
 {
-    if (barycentric < 0) {
+    if (barycentric < (DLR_Number)0) {
         return false;
-    } else if (barycentric == 0) {
-        if (edgeY == 0 && edgeX > 0) {
+    } else if (barycentric == (DLR_Number)0) {
+        if (edgeY == (DLR_Number)0 && edgeX > (DLR_Number)0) {
             return true;
-        } else if (edgeY < 0) {
+        } else if (edgeY < (DLR_Number)0) {
             return true;
         } else {
             return false;
@@ -258,13 +293,14 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Float barycentric, DLR_Float 
     }
 }
 
-DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
+template <typename DLR_Number, typename DLR_Vertex>
+void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
 {
     // TODO: consider adding +1 to *max vars, to prevent clipping.  This'll depend on how we determine if a pixel is lit.
-    int ymin = (int) DLR_Min(v0.y, DLR_Min(v1.y, v2.y));
-    int ymax = (int) DLR_Max(v0.y, DLR_Max(v1.y, v2.y));
-    int xmin = (int) DLR_Min(v0.x, DLR_Min(v1.x, v2.x));
-    int xmax = (int) DLR_Max(v0.x, DLR_Max(v1.x, v2.x));
+    int ymin = (int)(DLR_Min(v0.y, DLR_Min(v1.y, v2.y)));
+    int ymax = (int)(DLR_Max(v0.y, DLR_Max(v1.y, v2.y)));
+    int xmin = (int)(DLR_Min(v0.x, DLR_Min(v1.x, v2.x)));
+    int xmax = (int)(DLR_Max(v0.x, DLR_Max(v1.x, v2.x)));
 
     //xmax++;
     //ymax++;
@@ -274,15 +310,16 @@ DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex 
     xmin = DLR_Max(xmin, 0);
     xmax = DLR_Min(xmax, (state->dest.w - 1));
 
-    DLR_Float lambda0;
-    DLR_Float lambda1;
-    DLR_Float lambda2;
+    DLR_Number lambda0;
+    DLR_Number lambda1;
+    DLR_Number lambda2;
 
+    const DLR_Number xy_offset = (DLR_Number)0.5f;
     for (int y = ymin; y <= ymax; ++y) {
         for (int x = 0; x <= xmax; ++x) {
-            DLR_Vertex p = {(DLR_Float)x, (DLR_Float)y};
-            p.x += 0.5; // Use the center of the pixel, to determine whether to rasterize
-            p.y += 0.5;
+            DLR_Vertex p = {(DLR_Number)x, (DLR_Number)y};
+            p.x = p.x + xy_offset; // Use the center of the pixel, to determine whether to rasterize
+            p.y = p.y + xy_offset;
             DLR_CalculateBarycentricCoordinates(p, v0, v1, v2, &lambda0, &lambda1, &lambda2);
 
             DLR_Vertex edge0 = {v2.x-v1.x, v2.y-v1.y}; // v2 - v1
@@ -293,38 +330,39 @@ DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex 
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda1, edge1.x, edge1.y);
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda2, edge2.x, edge2.y);
             if (overlaps) {
-                DLR_Color<DLR_Float> fincomingC = \
-                    (DLR_VertexColor(v0) * lambda0) +
-                    (DLR_VertexColor(v1) * lambda1) +
-                    (DLR_VertexColor(v2) * lambda2);
-                DLR_Color<Uint8> nincomingC = (DLR_Color<Uint8>) DLR_Round(fincomingC * 255.f);
+                DLR_Color<DLR_Number> fincomingC = \
+                    (DLR_VertexColor<DLR_Number, DLR_Vertex>(v0) * lambda0) +
+                    (DLR_VertexColor<DLR_Number, DLR_Vertex>(v1) * lambda1) +
+                    (DLR_VertexColor<DLR_Number, DLR_Vertex>(v2) * lambda2);
+                DLR_Color<Uint8> nincomingC = (DLR_Color<Uint8>) DLR_Round(fincomingC * (DLR_Number)255);
                 DLR_AssertValidColor8888(nincomingC);
 
                 DLR_Color<Uint8> nfinalC = {0xff, 0xff, 0x00, 0xff};  // default to ugly color
-                DLR_Float uv = 0.;
-                DLR_Float uw = 0.;
-                DLR_Float ftexX = 0.;
-                DLR_Float ftexY = 0.;
+                DLR_Number uv = (DLR_Number)0;
+                DLR_Number uw = (DLR_Number)0;
+                DLR_Number ftexX = (DLR_Number)0;
+                DLR_Number ftexY = (DLR_Number)0;
                 int ntexX = 0;
                 int ntexY = 0;
                 DLR_Color<Uint8> ntexC = {0, 0, 0, 0};
-                DLR_Color<DLR_Float> ftexC = {0., 0., 0., 0.};
-                DLR_Color<DLR_Float> ffinalC = {0., 0., 0., 0.};
+                DLR_Color<DLR_Number> ftexC = {(DLR_Number)0, (DLR_Number)0, (DLR_Number)0, (DLR_Number)0};
+                DLR_Color<DLR_Number> ffinalC = {(DLR_Number)0, (DLR_Number)0, (DLR_Number)0, (DLR_Number)0};
                 
                 if (state->texture.pixels) {
                     uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
                     uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
-                    ftexX = (uv * (DLR_Float)(state->texture.w /* - 1*/));
-                    ftexY = (uw * (DLR_Float)(state->texture.h /* - 1*/));
-                    ntexX = DLR_Min((int)/*round*/(ftexX), state->texture.w - 1);
-                    ntexY = DLR_Min((int)/*round*/(ftexY), state->texture.h - 1);
+                    ftexX = (uv * (DLR_Number)(state->texture.w /* - 1*/));
+                    ftexY = (uw * (DLR_Number)(state->texture.h /* - 1*/));
+                    ntexX = DLR_Min((int)ftexX, state->texture.w - 1);
+                    ntexY = DLR_Min((int)ftexY, state->texture.h - 1);
                     DLR_Assert(ntexX >= 0 && ntexX < state->texture.w);
                     DLR_Assert(ntexY >= 0 && ntexY < state->texture.h);
                     ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
-                    ftexC = (DLR_Color<DLR_Float>)ntexC / 255.f;
+                    DLR_Color<DLR_Number> tmpColor = (DLR_Color<DLR_Number>)ntexC;
+                    ftexC = (DLR_Color<DLR_Number>)ntexC / (DLR_Number)255;
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
                         ffinalC = ftexC * fincomingC;
-                        nfinalC = (DLR_Color<Uint8>) DLR_Round(ffinalC * 255.f);
+                        nfinalC = (DLR_Color<Uint8>) DLR_Round(ffinalC * (DLR_Number)255);
                         DLR_AssertValidColor8888(nfinalC);
                     } else {
                         nfinalC = ntexC;
@@ -344,19 +382,19 @@ DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex 
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
-                        DLR_Color<DLR_Float> fsrc = ffinalC;
+                        DLR_Color<DLR_Number> fsrc = ffinalC;
                         DLR_Color<Uint8> ndest = (DLR_Color<Uint8>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
-                        DLR_Color<DLR_Float> fdest = (DLR_Color<DLR_Float>)ndest / 255.f;
+                        DLR_Color<DLR_Number> fdest = (DLR_Color<DLR_Number>)ndest / (DLR_Number)255;
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-                        fdest.R = (fsrc.R * fsrc.A) + (fdest.R * (1. - fsrc.A));
-                        fdest.G = (fsrc.G * fsrc.A) + (fdest.G * (1. - fsrc.A));
-                        fdest.B = (fsrc.B * fsrc.A) + (fdest.B * (1. - fsrc.A));
+                        fdest.R = (fsrc.R * fsrc.A) + (fdest.R * ((DLR_Number)1 - fsrc.A));
+                        fdest.G = (fsrc.G * fsrc.A) + (fdest.G * ((DLR_Number)1 - fsrc.A));
+                        fdest.B = (fsrc.B * fsrc.A) + (fdest.B * ((DLR_Number)1 - fsrc.A));
 
                         // dstA = srcA + (dstA * (1-srcA))
-                        fdest.A = fsrc.A + (fdest.A * (1. - fsrc.A));
+                        fdest.A = fsrc.A + (fdest.A * ((DLR_Number)1 - fsrc.A));
 
-                        ndest = (DLR_Color<Uint8>) DLR_Round(fdest * 255.f);
+                        ndest = (DLR_Color<Uint8>) DLR_Round(fdest * (DLR_Number)255);
                         DLR_AssertValidColor8888(ndest);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(ndest));
                     } break;
@@ -366,12 +404,42 @@ DLR_EXTERN_C void DLR_DrawTriangle(DLR_State * state, DLR_Vertex v0, DLR_Vertex 
     }
 }
 
-DLR_EXTERN_C void DLR_DrawTriangles(DLR_State * state, DLR_Vertex * vertices, size_t vertexCount)
+DLR_EXTERN_C void DLR_DrawTriangleX(DLR_State * state, DLR_VertexX v0, DLR_VertexX v1, DLR_VertexX v2)
+{
+    DLR_DrawTriangleT<DLR_Fixed, DLR_VertexX>(state, v0, v1, v2);
+}
+
+DLR_EXTERN_C void DLR_DrawTrianglesX(DLR_State * state, DLR_VertexX * vertices, size_t vertexCount)
 {
     for (size_t i = 0; (i + 2) < vertexCount; i += 3) {
-        DLR_DrawTriangle(state, vertices[i], vertices[i+1], vertices[i+2]);
+        DLR_DrawTriangleX(state, vertices[i], vertices[i+1], vertices[i+2]);
     }
 }
+
+DLR_EXTERN_C void DLR_DrawTrianglesD(DLR_State * state, DLR_VertexD * vertices, size_t vertexCount)
+{
+    DLR_VertexX converted[3];
+    for (size_t i = 0; (i + 2) < vertexCount; i += 3) {
+#if 1
+        for (int j = 0; j < 3; ++j) {
+            converted[j] = {
+                (DLR_Fixed)vertices[i+j].x,
+                (DLR_Fixed)vertices[i+j].y,
+                (DLR_Fixed)vertices[i+j].a,
+                (DLR_Fixed)vertices[i+j].r,
+                (DLR_Fixed)vertices[i+j].g,
+                (DLR_Fixed)vertices[i+j].b,
+                (DLR_Fixed)vertices[i+j].uv,
+                (DLR_Fixed)vertices[i+j].uw
+            };
+        }
+        DLR_DrawTriangleX(state, converted[0], converted[1], converted[2]);
+#else
+        DLR_DrawTriangleT<double, DLR_VertexD>(state, vertices[i], vertices[i+1], vertices[i+2]);
+#endif
+    }
+}
+
 
 #endif // ifdef DL_RASTER_IMPLEMENTATION
 
