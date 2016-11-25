@@ -295,7 +295,7 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
     }
 }
 
-#define DLR_MAX_COLOR_COMPONENT 255
+#define DLR_MAX_COLOR_COMPONENT 256
 
 template <typename DLR_Number>
 static inline DLR_Color<Uint8> DLR_ConvertColorToBytes(DLR_Color<DLR_Number> in) {
