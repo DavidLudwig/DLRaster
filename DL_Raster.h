@@ -300,12 +300,12 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
 #define DLR_MAX_COLOR_COMPONENT 256
 
 template <typename DLR_Number>
-static inline DLR_Color<Uint8> DLR_ConvertColorToBytes(const DLR_Color<DLR_Number> & in) {
+inline DLR_Color<Uint8> DLR_ConvertColorToBytes(const DLR_Color<DLR_Number> & in) {
     return DLR_Round(in * (DLR_Number)DLR_MAX_COLOR_COMPONENT);
 }
 
 template <>
-static inline DLR_Color<Uint8> DLR_ConvertColorToBytes(const DLR_Color<DLR_Fixed> & in) {
+inline DLR_Color<Uint8> DLR_ConvertColorToBytes(const DLR_Color<DLR_Fixed> & in) {
 //    return DLR_Round(in << 8);
     return {
         (Uint8)((in.A.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
@@ -316,12 +316,12 @@ static inline DLR_Color<Uint8> DLR_ConvertColorToBytes(const DLR_Color<DLR_Fixed
 }
 
 template <typename DLR_Number>
-static inline DLR_Color<DLR_Number> DLR_ConvertColorFromBytes(const DLR_Color<Uint8> & in) {
+inline DLR_Color<DLR_Number> DLR_ConvertColorFromBytes(const DLR_Color<Uint8> & in) {
     return (DLR_Color<DLR_Number>)in / (DLR_Number)DLR_MAX_COLOR_COMPONENT;
 }
 
 template <>
-static inline DLR_Color<DLR_Fixed> DLR_ConvertColorFromBytes(const DLR_Color<Uint8> & in) {
+inline DLR_Color<DLR_Fixed> DLR_ConvertColorFromBytes(const DLR_Color<Uint8> & in) {
     //return ((DLR_Color<DLR_Fixed>)(in)) >> 8;
     return {
         DLR_Fixed::FromRaw(((int32_t)in.A) << (DLR_Fixed::Precision - 8)),
