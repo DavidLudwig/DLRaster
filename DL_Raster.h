@@ -389,7 +389,6 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                 DLR_Color<Uint8> nincomingC = DLR_ConvertColorToBytes(fincomingC);
                 DLR_AssertValidColor8888(nincomingC);
 
-                DLR_Color<Uint8> nfinalC = {0xff, 0xff, 0x00, 0xff};  // default to ugly color
                 DLR_Number uv = (DLR_Number)0;
                 DLR_Number uw = (DLR_Number)0;
                 DLR_Number ftexX = (DLR_Number)0;
@@ -413,22 +412,20 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     ftexC = DLR_ConvertColorFromBytes<DLR_Number>(ntexC);
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
                         ffinalC = ftexC * fincomingC;
-                        nfinalC = DLR_ConvertColorToBytes(ffinalC);
-                        DLR_AssertValidColor8888(nfinalC);
                     } else {
-                        nfinalC = ntexC;
                         ffinalC = ftexC;
                     }
                 } else {
                     // texture is NULL
                     DLR_Assert(state->texture.pixels == NULL);
-                    nfinalC = nincomingC;
                     ffinalC = fincomingC;
                 } // if tex ... ; else ...
 
                 // color is ARGB
                 switch (state->blendMode) {
                     case DLR_BLENDMODE_NONE: {
+                        const DLR_Color<Uint8> nfinalC = DLR_ConvertColorToBytes(ffinalC);
+                        DLR_AssertValidColor8888(nfinalC);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(nfinalC));
                     } break;
 
