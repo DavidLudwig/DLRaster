@@ -20,6 +20,7 @@
 #ifndef DL_RASTER_H
 #define DL_RASTER_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 //#define DLR_USE_DOUBLE 1
