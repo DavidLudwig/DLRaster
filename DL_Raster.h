@@ -417,7 +417,6 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                 int ntexY = 0;
                 DLR_Color<Uint8> ntexC = {0, 0, 0, 0};
                 DLR_Color<DLR_Number> ftexC = {(DLR_Number)0, (DLR_Number)0, (DLR_Number)0, (DLR_Number)0};
-                DLR_Color<DLR_Number> ffinalC = {(DLR_Number)0, (DLR_Number)0, (DLR_Number)0, (DLR_Number)0};
                 
                 if (state->texture.pixels) {
                     uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
@@ -431,36 +430,31 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
                     ftexC = DLR_ConvertColorFromBytes<DLR_Number>(ntexC);
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
-                        ffinalC = ftexC * fincomingC;
+                        fincomingC = ftexC * fincomingC;
                     } else {
-                        ffinalC = ftexC;
+                        fincomingC = ftexC;
                     }
-                } else {
-                    // texture is NULL
-                    DLR_Assert(state->texture.pixels == NULL);
-                    ffinalC = fincomingC;
-                } // if tex ... ; else ...
+                } // if tex ...
 
                 // color is ARGB
                 switch (state->blendMode) {
                     case DLR_BLENDMODE_NONE: {
-                        const DLR_Color<Uint8> nfinalC = DLR_ConvertColorToBytes(ffinalC);
+                        const DLR_Color<Uint8> nfinalC = DLR_ConvertColorToBytes(fincomingC);
                         DLR_AssertValidColor8888(nfinalC);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(nfinalC));
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
-                        DLR_Color<DLR_Number> fsrc = ffinalC;
                         DLR_Color<Uint8> ndest = (DLR_Color<Uint8>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
                         DLR_Color<DLR_Number> fdest = DLR_ConvertColorFromBytes<DLR_Number>(ndest);
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-                        fdest.R = (fsrc.R * fsrc.A) + (fdest.R * ((DLR_Number)1 - fsrc.A));
-                        fdest.G = (fsrc.G * fsrc.A) + (fdest.G * ((DLR_Number)1 - fsrc.A));
-                        fdest.B = (fsrc.B * fsrc.A) + (fdest.B * ((DLR_Number)1 - fsrc.A));
+                        fdest.R = (fincomingC.R * fincomingC.A) + (fdest.R * ((DLR_Number)1 - fincomingC.A));
+                        fdest.G = (fincomingC.G * fincomingC.A) + (fdest.G * ((DLR_Number)1 - fincomingC.A));
+                        fdest.B = (fincomingC.B * fincomingC.A) + (fdest.B * ((DLR_Number)1 - fincomingC.A));
 
                         // dstA = srcA + (dstA * (1-srcA))
-                        fdest.A = fsrc.A + (fdest.A * ((DLR_Number)1 - fsrc.A));
+                        fdest.A = fincomingC.A + (fdest.A * ((DLR_Number)1 - fincomingC.A));
 
                         ndest = DLR_ConvertColorToBytes(fdest);
                         DLR_AssertValidColor8888(ndest);
