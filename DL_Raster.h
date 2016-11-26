@@ -448,7 +448,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
-#if 0   // original
+#if 1   // original
                         DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
                         DLR_Color<DLR_Number> fdest = DLR_ConvertColorFromBytes<DLR_Number>(ndest);
 
