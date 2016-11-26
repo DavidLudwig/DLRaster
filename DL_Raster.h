@@ -326,26 +326,53 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
     xmin = DLR_Max(xmin, 0);
     xmax = DLR_Min(xmax, (state->dest.w - 1));
 
+    DLR_Number lambda0_proto;
+    DLR_Number lambda1_proto;
+    DLR_Number lambda2_proto;
+
     DLR_Number lambda0;
     DLR_Number lambda1;
     DLR_Number lambda2;
+
+    const DLR_Number xy_offset = (DLR_Number)0.5f;
 
     // Precompute a common part of the triangle's barycentric coordinates,
     // in a form that won't require division later-on.
     const DLR_NumberBig barycentric_conversion_factor = ( (DLR_NumberBig)1 / (DLR_NumberBig)((v1.y - v2.y) * (v0.x - v2.x) + (v2.x - v1.x) * (v0.y - v2.y)));
 
-    const DLR_Number xy_offset = (DLR_Number)0.5f;
+    DLR_Vertex p = {(DLR_Number)xmin + xy_offset, (DLR_Number)ymin + xy_offset};
+
+    DLR_Number lambda0_row = (DLR_Number)(((DLR_NumberBig) (((v1.y - v2.y) * ( p.x - v2.x) + (v2.x - v1.x) * ( p.y - v2.y))))); // * barycentric_conversion_factor);
+    DLR_Number lambda0_xstep = (v1.y - v2.y);
+    DLR_Number lambda0_ystep = (v2.x - v1.x);
+
+    DLR_Number lambda1_row = (DLR_Number)(((DLR_NumberBig) (((v2.y - v0.y) * ( p.x - v2.x) + (v0.x - v2.x) * ( p.y - v2.y))))); // * barycentric_conversion_factor);
+    DLR_Number lambda1_xstep = (v2.y - v0.y);
+    DLR_Number lambda1_ystep = (v0.x - v2.x);
+
+    DLR_Number lambda2_row = (DLR_Number)(((DLR_NumberBig) (((v0.y - v1.y) * ( p.x - v0.x) + (v1.x - v0.x) * ( p.y - v0.y))))); // * barycentric_conversion_factor)
+    DLR_Number lambda2_xstep = (v0.y - v1.y);
+    DLR_Number lambda2_ystep = (v1.x - v0.x);
+
     for (int y = ymin; y <= ymax; ++y) {
+        lambda0_proto = lambda0_row;
+        lambda1_proto = lambda1_row;
+        lambda2_proto = lambda2_row;
+
         for (int x = xmin; x <= xmax; ++x) {
-            DLR_Vertex p = {(DLR_Number)x, (DLR_Number)y};
-            p.x = p.x + xy_offset; // Use the center of the pixel, to determine whether to rasterize
-            p.y = p.y + xy_offset;
+            // Use the center of the pixel, to determine whether to rasterize
+            p = {(DLR_Number)x + xy_offset, (DLR_Number)y + xy_offset};
 
             // Calculate barycentric coordinates.  Use 'big' numbers, with enough precision to help prevent underflow.
-            lambda0 = (DLR_Number)(((DLR_NumberBig) (((v1.y - v2.y) * ( p.x - v2.x) + (v2.x - v1.x) * ( p.y - v2.y))) ) * barycentric_conversion_factor);
-            lambda1 = (DLR_Number)(((DLR_NumberBig) (((v2.y - v0.y) * ( p.x - v2.x) + (v0.x - v2.x) * ( p.y - v2.y))) ) * barycentric_conversion_factor);
+            // lambda0 = (DLR_Number)(((DLR_NumberBig) (((v1.y - v2.y) * ( p.x - v2.x) + (v2.x - v1.x) * ( p.y - v2.y))) ) * barycentric_conversion_factor);
+            lambda0 = (DLR_Number)(((DLR_NumberBig)lambda0_proto) * barycentric_conversion_factor);
+            
+            //lambda1 = (DLR_Number)(((DLR_NumberBig) (((v2.y - v0.y) * ( p.x - v2.x) + (v0.x - v2.x) * ( p.y - v2.y))) ) * barycentric_conversion_factor);
+            lambda1 = (DLR_Number)(((DLR_NumberBig)lambda1_proto) * barycentric_conversion_factor);
+
             //lambda2 = (DLR_Number)(((DLR_NumberBig) (((v0.y - v1.y) * ( p.x - v0.x) + (v1.x - v0.x) * ( p.y - v0.y))) ) * barycentric_conversion_factor);
-            lambda2 = (DLR_Number)1 - lambda0 - lambda1;
+            //lambda2 = (DLR_Number)1 - lambda0 - lambda1;
+            lambda2 = (DLR_Number)(((DLR_NumberBig)lambda2_proto) * barycentric_conversion_factor);
 
             DLR_Vertex edge0 = {v2.x-v1.x, v2.y-v1.y}; // v2 - v1
             DLR_Vertex edge1 = {v0.x-v2.x, v0.y-v2.y}; // v0 - v2
@@ -422,10 +449,18 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                         DLR_AssertValidColor8888(ndest);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(ndest));
                     } break;
-                }
+                } // switch (blendMode)
             } // if (overlaps)
-        }
-    }
+
+            lambda0_proto = lambda0_proto + lambda0_xstep;
+            lambda1_proto = lambda1_proto + lambda1_xstep;
+            lambda2_proto = lambda2_proto + lambda2_xstep;
+        } // for X
+
+        lambda0_row = lambda0_row + lambda0_ystep;
+        lambda1_row = lambda1_row + lambda1_ystep;
+        lambda2_row = lambda2_row + lambda2_ystep;
+    } // for Y
 }
 
 DLR_EXTERN_C void DLR_DrawTriangleX(DLR_State * state, DLR_VertexX v0, DLR_VertexX v1, DLR_VertexX v2)
