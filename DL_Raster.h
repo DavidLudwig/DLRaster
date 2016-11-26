@@ -20,6 +20,8 @@
 #ifndef DL_RASTER_H
 #define DL_RASTER_H
 
+#include <stdint.h>
+
 //#define DLR_USE_DOUBLE 1
 
 #define DLR_FIXED_PRECISION 14
@@ -136,10 +138,10 @@ typedef struct DLR_State {
 } DLR_State;
 
 #define DLR_GetPixel32(PIXELS, PITCH, BYTESPP, X, Y) \
-    (*(Uint32 *)((Uint8 *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP)))))
+    (*(uint32_t *)((uint8_t *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP)))))
 
 #define DLR_SetPixel32(PIXELS, PITCH, BYTESPP, X, Y, COLOR) \
-    (*(Uint32 *)((Uint8 *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP))))) = (COLOR)
+    (*(uint32_t *)((uint8_t *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP))))) = (COLOR)
 
 #define DLR_SplitARGB32(SRC, A, R, G, B) \
     (A) = (((SRC) >> 24) & 0xff), \
@@ -171,7 +173,7 @@ typedef struct DLR_State {
 
 DLR_EXTERN_C void DLR_Clear(
     DLR_State * state,
-    Uint32 color);
+    uint32_t color);
 
 DLR_EXTERN_C void DLR_DrawTriangleX(
     DLR_State * state,
@@ -195,7 +197,7 @@ DLR_EXTERN_C void DLR_DrawTrianglesD(
 
 DLR_EXTERN_C void DLR_Clear(
     DLR_State * state,
-    Uint32 color)
+    uint32_t color)
 {
     for (int y = 0; y < state->dest.h; ++y) {
         for (int x = 0; x <= (state->dest.pitch - 4); x += 4) {
@@ -220,7 +222,7 @@ struct DLR_Color {
         B = b_;
     }
 
-    DLR_Color(Uint32 argb) {
+    DLR_Color(uint32_t argb) {
         A = (argb >> 24) & 0xff;
         R = (argb >> 16) & 0xff;
         G = (argb >>  8) & 0xff;
@@ -248,17 +250,17 @@ struct DLR_Color {
     DLR_Color operator << (unsigned int shift) const { return {A << shift, R << shift, G << shift, B << shift}; }
 };
 
-static Uint32 DLR_Join(DLR_Color<Uint8> c) {
+static uint32_t DLR_Join(DLR_Color<uint8_t> c) {
     return DLR_JoinARGB32(c.A, c.R, c.G, c.B);
 }
 
 template <typename DLR_Number>
-static DLR_Color<Uint8> DLR_Round(DLR_Color<DLR_Number> c) {
+static DLR_Color<uint8_t> DLR_Round(DLR_Color<DLR_Number> c) {
     return {
-        (Uint8)(c.A + (DLR_Number)0.5f),
-        (Uint8)(c.R + (DLR_Number)0.5f),
-        (Uint8)(c.G + (DLR_Number)0.5f),
-        (Uint8)(c.B + (DLR_Number)0.5f),
+        (uint8_t)(c.A + (DLR_Number)0.5f),
+        (uint8_t)(c.R + (DLR_Number)0.5f),
+        (uint8_t)(c.G + (DLR_Number)0.5f),
+        (uint8_t)(c.B + (DLR_Number)0.5f),
     };
 }
 
@@ -300,28 +302,28 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
 #define DLR_MAX_COLOR_COMPONENT 256
 
 template <typename DLR_Number>
-inline DLR_Color<Uint8> DLR_ConvertColorToBytes(const DLR_Color<DLR_Number> & in) {
+inline DLR_Color<uint8_t> DLR_ConvertColorToBytes(const DLR_Color<DLR_Number> & in) {
     return DLR_Round(in * (DLR_Number)DLR_MAX_COLOR_COMPONENT);
 }
 
 template <>
-inline DLR_Color<Uint8> DLR_ConvertColorToBytes(const DLR_Color<DLR_Fixed> & in) {
+inline DLR_Color<uint8_t> DLR_ConvertColorToBytes(const DLR_Color<DLR_Fixed> & in) {
 //    return DLR_Round(in << 8);
     return {
-        (Uint8)((in.A.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-        (Uint8)((in.R.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-        (Uint8)((in.G.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-        (Uint8)((in.B.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+        (uint8_t)((in.A.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+        (uint8_t)((in.R.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+        (uint8_t)((in.G.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+        (uint8_t)((in.B.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
     };
 }
 
 template <typename DLR_Number>
-inline DLR_Color<DLR_Number> DLR_ConvertColorFromBytes(const DLR_Color<Uint8> & in) {
+inline DLR_Color<DLR_Number> DLR_ConvertColorFromBytes(const DLR_Color<uint8_t> & in) {
     return (DLR_Color<DLR_Number>)in / (DLR_Number)DLR_MAX_COLOR_COMPONENT;
 }
 
 template <>
-inline DLR_Color<DLR_Fixed> DLR_ConvertColorFromBytes(const DLR_Color<Uint8> & in) {
+inline DLR_Color<DLR_Fixed> DLR_ConvertColorFromBytes(const DLR_Color<uint8_t> & in) {
     //return ((DLR_Color<DLR_Fixed>)(in)) >> 8;
     return {
         DLR_Fixed::FromRaw(((int32_t)in.A) << (DLR_Fixed::Precision - 8)),
@@ -415,7 +417,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                 DLR_Number ftexY = (DLR_Number)0;
                 int ntexX = 0;
                 int ntexY = 0;
-                DLR_Color<Uint8> ntexC = {0, 0, 0, 0};
+                DLR_Color<uint8_t> ntexC = {0, 0, 0, 0};
                 DLR_Color<DLR_Number> ftexC = {(DLR_Number)0, (DLR_Number)0, (DLR_Number)0, (DLR_Number)0};
                 
                 if (state->texture.pixels) {
@@ -439,13 +441,13 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                 // color is ARGB
                 switch (state->blendMode) {
                     case DLR_BLENDMODE_NONE: {
-                        const DLR_Color<Uint8> nfinalC = DLR_ConvertColorToBytes(fincomingC);
+                        const DLR_Color<uint8_t> nfinalC = DLR_ConvertColorToBytes(fincomingC);
                         DLR_AssertValidColor8888(nfinalC);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(nfinalC));
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
-                        DLR_Color<Uint8> ndest = (DLR_Color<Uint8>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
+                        DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
                         DLR_Color<DLR_Number> fdest = DLR_ConvertColorFromBytes<DLR_Number>(ndest);
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))

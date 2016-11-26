@@ -4,6 +4,9 @@
 // Disable deprecated C function warnings from MSVC:
 #define _CRT_SECURE_NO_WARNINGS
 
+#define DL_RASTER_IMPLEMENTATION
+#include "DL_Raster.h"
+
 #include "SDL.h"
 // Make sure SDL doesn't redefine main
 #undef main
@@ -21,9 +24,6 @@
 
 #define GB_MATH_IMPLEMENTATION
 #include "gb_math.h"
-
-#define DL_RASTER_IMPLEMENTATION
-#include "DL_Raster.h"
 
 #ifdef _WIN32
 #define DLRTEST_D3D10 1
