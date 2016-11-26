@@ -408,8 +408,6 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     (DLR_VertexColor<DLR_Number, DLR_Vertex>(v0) * lambda0) +
                     (DLR_VertexColor<DLR_Number, DLR_Vertex>(v1) * lambda1) +
                     (DLR_VertexColor<DLR_Number, DLR_Vertex>(v2) * lambda2);
-                DLR_Color<Uint8> nincomingC = DLR_ConvertColorToBytes(fincomingC);
-                DLR_AssertValidColor8888(nincomingC);
 
                 DLR_Number uv = (DLR_Number)0;
                 DLR_Number uw = (DLR_Number)0;
