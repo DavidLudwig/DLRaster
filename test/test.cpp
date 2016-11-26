@@ -570,7 +570,7 @@ technique10 TextureTechnique {
     if (FAILED(hr)) {
         SDL_Log("D3D10CompileEffectFromMemory() failed");
         char * errorMessage = (char *) errors->GetBufferPointer();
-        size_t errorMessageSize = errors->GetBufferSize();
+        int errorMessageSize = (int)errors->GetBufferSize();
         char buf[1024];
         snprintf(buf, sizeof(buf), "%.*s", errorMessageSize, errorMessage);
         SDL_Log("%s", buf);
@@ -706,7 +706,7 @@ void DLRTest_DrawTriangles_D3D10(
     if ( ! vertexBufferGPU) {
         memset(&bufferDesc, 0, sizeof(bufferDesc));
         bufferDesc.Usage = D3D10_USAGE_DYNAMIC;
-        bufferDesc.ByteWidth = sizeofInnerBuffer;
+        bufferDesc.ByteWidth = (UINT) sizeofInnerBuffer;
         bufferDesc.BindFlags = D3D10_BIND_VERTEX_BUFFER;
         bufferDesc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
         bufferDesc.MiscFlags = 0;
@@ -845,7 +845,7 @@ void DLRTest_DrawTriangles_D3D10(
         SDL_Log("d3d10 technique pass Apply() failed");
         exit(1);
     }
-    env->inner.d3d10.device->Draw(vertexCount, 0);
+    env->inner.d3d10.device->Draw((UINT)vertexCount, 0);
     if (FAILED(hr)) {
         SDL_Log("d3d10 device DrawAuto() failed");
         exit(1);
