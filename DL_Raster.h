@@ -31,6 +31,8 @@ struct DLR_FixedT {
     DLR_Integer data;
 
 #ifdef __cplusplus
+    static const int Precision = DLR_Precision;
+
     DLR_FixedT() {}
     explicit DLR_FixedT(float src) { data = (DLR_Integer)(src * (1 << DLR_Precision)); }
     explicit DLR_FixedT(double src) { data = (DLR_Integer)(src * (1 << DLR_Precision)); }
@@ -298,25 +300,36 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
 #define DLR_MAX_COLOR_COMPONENT 256
 
 template <typename DLR_Number>
-static inline DLR_Color<Uint8> DLR_ConvertColorToBytes(DLR_Color<DLR_Number> in) {
+static inline DLR_Color<Uint8> DLR_ConvertColorToBytes(const DLR_Color<DLR_Number> & in) {
     return DLR_Round(in * (DLR_Number)DLR_MAX_COLOR_COMPONENT);
 }
 
 template <>
-static inline DLR_Color<Uint8> DLR_ConvertColorToBytes(DLR_Color<DLR_Fixed> in) {
-    return DLR_Round(in << 8);
+static inline DLR_Color<Uint8> DLR_ConvertColorToBytes(const DLR_Color<DLR_Fixed> & in) {
+//    return DLR_Round(in << 8);
+    return {
+        (Uint8)((in.A.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+        (Uint8)((in.R.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+        (Uint8)((in.G.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+        (Uint8)((in.B.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+    };
 }
 
 template <typename DLR_Number>
-static inline DLR_Color<DLR_Number> DLR_ConvertColorFromBytes(DLR_Color<Uint8> in) {
+static inline DLR_Color<DLR_Number> DLR_ConvertColorFromBytes(const DLR_Color<Uint8> & in) {
     return (DLR_Color<DLR_Number>)in / (DLR_Number)DLR_MAX_COLOR_COMPONENT;
 }
 
 template <>
-static inline DLR_Color<DLR_Fixed> DLR_ConvertColorFromBytes(DLR_Color<Uint8> in) {
-    return ((DLR_Color<DLR_Fixed>)(in)) >> 8;
+static inline DLR_Color<DLR_Fixed> DLR_ConvertColorFromBytes(const DLR_Color<Uint8> & in) {
+    //return ((DLR_Color<DLR_Fixed>)(in)) >> 8;
+    return {
+        DLR_Fixed::FromRaw(((int32_t)in.A) << (DLR_Fixed::Precision - 8)),
+        DLR_Fixed::FromRaw(((int32_t)in.R) << (DLR_Fixed::Precision - 8)),
+        DLR_Fixed::FromRaw(((int32_t)in.G) << (DLR_Fixed::Precision - 8)),
+        DLR_Fixed::FromRaw(((int32_t)in.B) << (DLR_Fixed::Precision - 8)),
+    };
 }
-
 
 template <typename DLR_Number, typename DLR_Vertex, typename DLR_NumberBig>
 void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
