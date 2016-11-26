@@ -300,14 +300,23 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
 template <typename DLR_Number>
 static inline DLR_Color<Uint8> DLR_ConvertColorToBytes(DLR_Color<DLR_Number> in) {
     return DLR_Round(in * (DLR_Number)DLR_MAX_COLOR_COMPONENT);
-//    return DLR_Round(in << 8);
+}
+
+template <>
+static inline DLR_Color<Uint8> DLR_ConvertColorToBytes(DLR_Color<DLR_Fixed> in) {
+    return DLR_Round(in << 8);
 }
 
 template <typename DLR_Number>
 static inline DLR_Color<DLR_Number> DLR_ConvertColorFromBytes(DLR_Color<Uint8> in) {
     return (DLR_Color<DLR_Number>)in / (DLR_Number)DLR_MAX_COLOR_COMPONENT;
-//    return ((DLR_Color<DLR_Number>)(in)) >> 8;
 }
+
+template <>
+static inline DLR_Color<DLR_Fixed> DLR_ConvertColorFromBytes(DLR_Color<Uint8> in) {
+    return ((DLR_Color<DLR_Fixed>)(in)) >> 8;
+}
+
 
 template <typename DLR_Number, typename DLR_Vertex, typename DLR_NumberBig>
 void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
