@@ -336,7 +336,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
 
     const DLR_Number xy_offset = (DLR_Number)0.5f;
     for (int y = ymin; y <= ymax; ++y) {
-        for (int x = 0; x <= xmax; ++x) {
+        for (int x = xmin; x <= xmax; ++x) {
             DLR_Vertex p = {(DLR_Number)x, (DLR_Number)y};
             p.x = p.x + xy_offset; // Use the center of the pixel, to determine whether to rasterize
             p.y = p.y + xy_offset;
