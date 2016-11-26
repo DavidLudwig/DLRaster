@@ -448,6 +448,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
+#if 0   // original
                         DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
                         DLR_Color<DLR_Number> fdest = DLR_ConvertColorFromBytes<DLR_Number>(ndest);
 
@@ -462,6 +463,44 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                         ndest = DLR_ConvertColorToBytes(fdest);
                         DLR_AssertValidColor8888(ndest);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(ndest));
+#else   // little-endian optimized
+                        typedef union {
+                            uint32_t full;
+                            struct {
+                                uint8_t B;
+                                uint8_t G;
+                                uint8_t R;
+                                uint8_t A;
+                            } parts;
+                        } DLR_Color2;
+
+                        DLR_Color2 ndest = { DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y) };
+                        DLR_Color<DLR_Number> fdest = {
+                            DLR_Fixed::FromRaw(((int32_t)ndest.parts.A) << (DLR_Fixed::Precision - 8)),
+                            DLR_Fixed::FromRaw(((int32_t)ndest.parts.R) << (DLR_Fixed::Precision - 8)),
+                            DLR_Fixed::FromRaw(((int32_t)ndest.parts.G) << (DLR_Fixed::Precision - 8)),
+                            DLR_Fixed::FromRaw(((int32_t)ndest.parts.B) << (DLR_Fixed::Precision - 8)),
+                        };
+
+                        // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
+                        fdest.R = (fincomingC.R * fincomingC.A) + (fdest.R * ((DLR_Number)1 - fincomingC.A));
+                        fdest.G = (fincomingC.G * fincomingC.A) + (fdest.G * ((DLR_Number)1 - fincomingC.A));
+                        fdest.B = (fincomingC.B * fincomingC.A) + (fdest.B * ((DLR_Number)1 - fincomingC.A));
+
+                        // dstA = srcA + (dstA * (1-srcA))
+                        fdest.A = fincomingC.A + (fdest.A * ((DLR_Number)1 - fincomingC.A));
+
+                        //ndest = DLR_ConvertColorToBytes(fdest);
+                        ndest.parts = {
+                            (uint8_t)((fdest.B.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+                            (uint8_t)((fdest.G.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+                            (uint8_t)((fdest.R.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+                            (uint8_t)((fdest.A.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+                        };
+
+                        //DLR_AssertValidColor8888(ndest);
+                        DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, ndest.full);
+#endif
                     } break;
                 } // switch (blendMode)
             } // if (overlaps)
