@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
-    <Type Name="DLR_Fixed">
-      <DisplayString>{((float)(data)) / float(1 &lt;&lt; 8)}</DisplayString>
+    <Type Name="DLR_FixedT&lt;*&gt;>">
+      <DisplayString>{((float)(data)) / float(1 &lt;&lt; $T2)}</DisplayString>
   </Type>
 </AutoVisualizer>
