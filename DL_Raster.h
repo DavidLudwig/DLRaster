@@ -96,10 +96,11 @@ typedef enum {
 
 typedef double DLR_Float;       // huh, double can be faster than float, at least on a high-end-ish x64 CPU
 
-typedef struct DLR_PointX {
+template <typename DLR_Number>
+struct DLR_Point {
     DLR_Fixed x;
     DLR_Fixed y;
-} DLR_PointX;
+};
 
 typedef struct DLR_VertexX {
     DLR_Fixed x;
@@ -365,7 +366,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
     // in a form that won't require division later-on.
     const DLR_NumberBig barycentric_conversion_factor = ( (DLR_NumberBig)1 / (DLR_NumberBig)((v1.y - v2.y) * (v0.x - v2.x) + (v2.x - v1.x) * (v0.y - v2.y)));
 
-    DLR_Vertex p = {(DLR_Number)xmin + xy_offset, (DLR_Number)ymin + xy_offset};
+    DLR_Point<DLR_Number> p = {(DLR_Number)xmin + xy_offset, (DLR_Number)ymin + xy_offset};
 
     DLR_Number lambda0_row = (DLR_Number)(((DLR_NumberBig) (((v1.y - v2.y) * ( p.x - v2.x) + (v2.x - v1.x) * ( p.y - v2.y))))); // * barycentric_conversion_factor);
     DLR_Number lambda0_xstep = (v1.y - v2.y);
@@ -399,9 +400,9 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
             //lambda2 = (DLR_Number)1 - lambda0 - lambda1;
             lambda2 = (DLR_Number)(((DLR_NumberBig)lambda2_proto) * barycentric_conversion_factor);
 
-            DLR_Vertex edge0 = {v2.x-v1.x, v2.y-v1.y}; // v2 - v1
-            DLR_Vertex edge1 = {v0.x-v2.x, v0.y-v2.y}; // v0 - v2
-            DLR_Vertex edge2 = {v1.x-v0.x, v1.y-v0.y}; // v1 - v0
+            DLR_Point<DLR_Number> edge0 = {v2.x-v1.x, v2.y-v1.y}; // v2 - v1
+            DLR_Point<DLR_Number> edge1 = {v0.x-v2.x, v0.y-v2.y}; // v0 - v2
+            DLR_Point<DLR_Number> edge2 = {v1.x-v0.x, v1.y-v0.y}; // v1 - v0
             bool overlaps = true;
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda0, edge0.x, edge0.y);
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda1, edge1.x, edge1.y);
