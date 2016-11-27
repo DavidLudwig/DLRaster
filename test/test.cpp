@@ -965,9 +965,9 @@ void DLRTest_DrawScene(DLRTest_Env * env)
 #endif
         };
         DLR_VertexD vertices[] = {
-            {originX      , originY      ,    c[0].a, c[0].r, c[0].g, c[0].b,   0, 0},
-            {originX + 300, originY + 150,    c[1].a, c[1].r, c[1].g, c[1].b,   0, 0},
-            {originX + 150, originY + 300,    c[2].a, c[2].r, c[2].g, c[2].b,   0, 0},
+            {originX      , originY      ,    c[0].b, c[0].g, c[0].r, c[0].a,   0, 0},
+            {originX + 300, originY + 150,    c[1].b, c[1].g, c[1].r, c[1].a,   0, 0},
+            {originX + 150, originY + 300,    c[2].b, c[2].g, c[2].r, c[2].a,   0, 0},
         };
         DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
     }
@@ -1068,16 +1068,16 @@ void DLRTest_DrawScene(DLRTest_Env * env)
         DLR_VertexD vertices[] = {
 #if 1
             // TRIANGLE: top-right
-            {originX       , originY,           c[0].a, c[0].r, c[0].g, c[0].b,    0, 0},    // left  top
-            {originX + texW, originY,           c[1].a, c[1].r, c[1].g, c[1].b,    1, 0},    // right top
-            {originX + texW, originY + texH,    c[2].a, c[2].r, c[2].g, c[2].b,    1, 1},    // right bottom
+            {originX       , originY,           c[0].b, c[0].g, c[0].r, c[0].a,    0, 0},    // left  top
+            {originX + texW, originY,           c[1].b, c[1].g, c[1].r, c[1].a,    1, 0},    // right top
+            {originX + texW, originY + texH,    c[2].b, c[2].g, c[2].r, c[2].a,    1, 1},    // right bottom
 #endif
 
 #if 1
             // TRIANGLE: bottom-left
-            {originX + texW, originY + texH,    c[2].a, c[2].r, c[2].g, c[2].b,    1, 1},    // right bottom
-            {originX       , originY + texH,    c[3].a, c[3].r, c[3].g, c[3].b,    0, 1},    // left  bottom
-            {originX       , originY       ,    c[0].a, c[0].r, c[0].g, c[0].b,    0, 0},    // left  top
+            {originX + texW, originY + texH,    c[2].b, c[2].g, c[2].r, c[2].a,    1, 1},    // right bottom
+            {originX       , originY + texH,    c[3].b, c[3].g, c[3].r, c[3].a,    0, 1},    // left  bottom
+            {originX       , originY       ,    c[0].b, c[0].g, c[0].r, c[0].a,    0, 0},    // left  top
 #endif
         };
         DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));

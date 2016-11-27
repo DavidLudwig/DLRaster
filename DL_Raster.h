@@ -105,10 +105,10 @@ struct DLR_Point {
 typedef struct DLR_VertexX {
     DLR_Fixed x;
     DLR_Fixed y;
-    DLR_Fixed a;
-    DLR_Fixed r;
-    DLR_Fixed g;
     DLR_Fixed b;
+    DLR_Fixed g;
+    DLR_Fixed r;
+    DLR_Fixed a;
     DLR_Fixed uv;
     DLR_Fixed uw;
 } DLR_VertexX;
@@ -116,10 +116,10 @@ typedef struct DLR_VertexX {
 typedef struct DLR_VertexD {
     double x;
     double y;
-    double a;
-    double r;
-    double g;
     double b;
+    double g;
+    double r;
+    double a;
     double uv;
     double uw;
 } DLR_VertexD;
@@ -210,10 +210,10 @@ DLR_EXTERN_C void DLR_Clear(
 
 template <typename DLR_ColorComponent>
 struct DLR_Color {
-    DLR_ColorComponent A;
-    DLR_ColorComponent R;
-    DLR_ColorComponent G;
     DLR_ColorComponent B;
+    DLR_ColorComponent G;
+    DLR_ColorComponent R;
+    DLR_ColorComponent A;
 
     DLR_Color() = default;
 
@@ -275,7 +275,7 @@ static DLR_Color<uint8_t> DLR_Round(DLR_Color<DLR_Number> c) {
 
 template <typename DLR_Number, typename DLR_Vertex>
 DLR_Color<DLR_Number> & DLR_VertexColor(DLR_Vertex & v) {
-    return * (DLR_Color<DLR_Number> *) &(v.a);
+    return * (DLR_Color<DLR_Number> *) &(v.b);
 }
 
 // template <typename DLR_Number, typename DLR_Vertex>
@@ -465,15 +465,8 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                         DLR_AssertValidColor8888(ndest);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(ndest));
 #else   // little-endian optimized
-                        typedef struct DLR_Color2 {
-                            uint8_t B;
-                            uint8_t G;
-                            uint8_t R;
-                            uint8_t A;
-                        } DLR_Color2;
-
                         const uint32_t ndest_raw = DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
-                        DLR_Color2 ndest = *((DLR_Color2 *)(& ndest_raw ));
+                        DLR_Color<uint8_t> ndest = *((DLR_Color<uint8_t> *)(& ndest_raw ));
 
                         DLR_Color<DLR_Number> fdest = {
                             DLR_Fixed::FromRaw(((int32_t)ndest.A) << (DLR_Fixed::Precision - 8)),
@@ -539,10 +532,10 @@ DLR_EXTERN_C void DLR_DrawTrianglesD(DLR_State * state, DLR_VertexD * vertices, 
             converted[j] = {
                 (DLR_Fixed)vertices[i+j].x,
                 (DLR_Fixed)vertices[i+j].y,
-                (DLR_Fixed)vertices[i+j].a,
-                (DLR_Fixed)vertices[i+j].r,
-                (DLR_Fixed)vertices[i+j].g,
                 (DLR_Fixed)vertices[i+j].b,
+                (DLR_Fixed)vertices[i+j].g,
+                (DLR_Fixed)vertices[i+j].r,
+                (DLR_Fixed)vertices[i+j].a,
                 (DLR_Fixed)vertices[i+j].uv,
                 (DLR_Fixed)vertices[i+j].uw
             };
