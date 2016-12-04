@@ -360,12 +360,13 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
     DLR_Number lambda1;
     DLR_Number lambda2;
 
-    const DLR_Number xy_offset = (DLR_Number)0.5f;
 
     // Precompute a common part of the triangle's barycentric coordinates,
     // in a form that won't require division later-on.
     const DLR_NumberBig barycentric_conversion_factor = ( (DLR_NumberBig)1 / (DLR_NumberBig)((v1.y - v2.y) * (v0.x - v2.x) + (v2.x - v1.x) * (v0.y - v2.y)));
 
+    // Use the center of the pixel, to determine whether to rasterize
+    const DLR_Number xy_offset = (DLR_Number)0.5f;
     DLR_Point<DLR_Number> p = {(DLR_Number)xmin + xy_offset, (DLR_Number)ymin + xy_offset};
 
     DLR_Number lambda0_row = (DLR_Number)(((DLR_NumberBig) (((v1.y - v2.y) * ( p.x - v2.x) + (v2.x - v1.x) * ( p.y - v2.y))))); // * barycentric_conversion_factor);
@@ -386,9 +387,6 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
         lambda2_proto = lambda2_row;
 
         for (int x = xmin; x <= xmax; ++x) {
-            // Use the center of the pixel, to determine whether to rasterize
-            p = {(DLR_Number)x + xy_offset, (DLR_Number)y + xy_offset};
-
             // Calculate barycentric coordinates.  Use 'big' numbers, with enough precision to help prevent underflow.
             // lambda0 = (DLR_Number)(((DLR_NumberBig) (((v1.y - v2.y) * ( p.x - v2.x) + (v2.x - v1.x) * ( p.y - v2.y))) ) * barycentric_conversion_factor);
             lambda0 = (DLR_Number)(((DLR_NumberBig)lambda0_proto) * barycentric_conversion_factor);
