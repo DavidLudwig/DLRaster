@@ -7,6 +7,10 @@
 #define DL_RASTER_IMPLEMENTATION
 #include "DL_Raster.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #include "SDL.h"
 // Make sure SDL doesn't redefine main
 #undef main
@@ -31,6 +35,9 @@
 #include "SDL_syswm.h"
 #pragma comment(lib, "d3d10.lib")
 #endif
+
+// Include binary asset(s) in program
+#include "texture.bmp.h"    // declares texture_bmp and texture_bmp_len
 
 #define DLRTest_Assert(X) if (!(X)) { SDL_Log("DLRTest, assertion failed:\n%s(%d): %s\n\n", __FILE__, __LINE__, #X); exit(1); }
 
@@ -91,7 +98,7 @@ static DLRTest_Env envs[] = {
         0,
     },
 
-#if 1   // turn on to compare DLRaster with OpenGL or D3D10
+#if !defined(__EMSCRIPTEN__)   // turn on to compare DLRaster with OpenGL or D3D10
 #if DLRTEST_D3D10
     {
         DLRTEST_TYPE_D3D10,
@@ -128,6 +135,10 @@ static int compare_threshold = 0;
 
 static int numTicksToQuit = -1;
 static int numTicksBetweenPerfMeasurements = 500;
+static int numTicksToNextMeasurement = 0;
+static Uint64 initialMeasurement = 0;
+static Uint64 lastMeasurement = 0;
+static uint64_t totalTicks = 0;
 
 PFNGLBLENDFUNCSEPARATEPROC _glBlendFuncSeparate = NULL;
 
@@ -993,10 +1004,7 @@ void DLRTest_DrawScene(DLRTest_Env * env)
             SDL_Surface * textureSrc = NULL;
             switch (textureType) {
                 case DLRTEST_TEXTURE_FROM_IMAGE: {
-                    textureSrc = SDL_LoadBMP("texture.bmp");
-                    if ( ! textureSrc) {
-                        textureSrc = SDL_LoadBMP("../../texture.bmp");   // for OSX, via test-DLRaster Xcode project
-                    }
+                    textureSrc = SDL_LoadBMP_RW(SDL_RWFromMem(texture_bmp, texture_bmp_len), 1);
                 } break;
 
                 case DLRTEST_TEXTURE_NONE: {
@@ -1415,6 +1423,181 @@ void DLRTest_RunFixedPointTests() {
     }
 }
 
+void DLRTest_Tick()
+{
+    if (numTicksToQuit == 0) {
+        exit(0);
+    }
+
+    totalTicks++;
+    numTicksToNextMeasurement--;
+    if (numTicksToNextMeasurement == 0) {
+        Uint64 now = SDL_GetPerformanceCounter();
+        double dtInMS = (double)((now - lastMeasurement) * 1000) / SDL_GetPerformanceFrequency();
+        double fps = (double)numTicksBetweenPerfMeasurements / (dtInMS / 1000.0);
+        //SDL_Log("%f ms for %d ticks ; %f FPS\n", dtInMS, numTicksBetweenPerfMeasurements, fps);
+        double totalDtInS = (double)((now - initialMeasurement) * 1) / SDL_GetPerformanceFrequency();
+        printf("  %-15.5f %-15.5f\n", totalDtInS, fps);
+        lastMeasurement = now;
+        numTicksToNextMeasurement = numTicksBetweenPerfMeasurements;
+    }
+
+    // Process events
+    SDL_Event e;
+    while (SDL_PollEvent(&e)) {
+        DLR_Test_ProcessEvent(e);
+    }
+
+    // Create a view matrix for OpenGL and/or D3D10 use
+    gbMat4 rotateX;
+    gb_mat4_rotate(&rotateX, {1, 0, 0}, (float)M_PI);
+    gbMat4 translateXY;
+    gb_mat4_translate(&translateXY, {-1.f, -1.f, 0});
+    gbMat4 scaleXY;
+    gb_mat4_scale(&scaleXY, {2.f/(float)winW, 2.f/(float)winH, 1});
+    gbMat4 finalM;
+    gb_mat4_mul(&finalM, &rotateX, &translateXY);
+    gb_mat4_mul(&finalM, &finalM, &scaleXY);
+
+    // Draw
+    for (int i = 0; i < num_envs; ++i) {
+        DLRTest_Env * env = &envs[i];
+
+        // Init Scene
+        switch (env->type) {
+            case DLRTEST_TYPE_SOFTWARE: {
+            } break;
+
+            case DLRTEST_TYPE_OPENGL1: {
+                SDL_GL_MakeCurrent(envs[i].window, env->inner.gl.gl);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+                glLoadMatrixf(finalM.e);
+            } break;
+
+            case DLRTEST_TYPE_D3D10: {
+#if DLRTEST_D3D10
+                envs[i].inner.d3d10.viewMatrix->SetMatrix(finalM.e);
+#endif
+            } break;
+        }
+
+        // Render Scene
+        if ( ! (env->flags & DLRTEST_ENV_COMPARE)) {
+            DLRTest_DrawScene(&envs[i]);
+        } else {
+            // Draw diff between scenes 0 and 1
+            SDL_Surface * dest = DLRTest_GetSurfaceForView(&envs[i]);
+            SDL_Surface * A = DLRTest_GetSurfaceForView(&envs[0]);
+            SDL_Surface * B = DLRTest_GetSurfaceForView(&envs[1]);
+            if (dest) {
+                for (int y = 0; y < dest->h; ++y) {
+                    for (int x = 0; x < dest->w; ++x) {
+                        Uint32 dc = 0xffff0000;
+                        if (A && B) {
+                            Uint32 ac = DLR_GetPixel32(A->pixels, A->pitch, 4, x, y);
+                            int aa, ar, ag, ab;
+                            DLR_SplitARGB32(ac, aa, ar, ag, ab);
+
+                            Uint32 bc = DLR_GetPixel32(B->pixels, B->pitch, 4, x, y);
+                            int ba, br, bg, bb;
+                            DLR_SplitARGB32(bc, ba, br, bg, bb);
+
+                            int beyond = 0;
+                            if (compare & DLRTEST_COMPARE_A) {
+                                beyond |= abs(aa - ba) > compare_threshold;
+                            }
+                            if (compare & DLRTEST_COMPARE_R) {
+                                beyond |= abs(ar - br) > compare_threshold;
+                            }
+                            if (compare & DLRTEST_COMPARE_G) {
+                                beyond |= abs(ag - bg) > compare_threshold;
+                            }
+                            if (compare & DLRTEST_COMPARE_B) {
+                                beyond |= abs(ab - bb) > compare_threshold;
+                            }
+
+                            dc = beyond ? 0xffffffff : 0x00000000;
+                        }
+                        DLR_SetPixel32(dest->pixels, dest->pitch, 4, x, y, dc);
+                    }
+                }
+            }
+        }
+
+        // Present rendered scene
+        if ( ! (envs[i].flags & DLRTEST_ENV_HEADLESS)) {
+            switch (env->type) {
+                case DLRTEST_TYPE_SOFTWARE: {
+                    SDL_Renderer * r = SDL_GetRenderer(envs[i].window);
+                    SDL_UpdateTexture(env->inner.sw.bgTex, NULL, env->inner.sw.bg->pixels, env->inner.sw.bg->pitch);
+                    SDL_SetRenderDrawColor(r, 0, 0, 0, 0xff);
+                    SDL_RenderClear(r);
+                    SDL_RenderCopy(r, envs[i].inner.sw.bgTex, NULL, NULL);
+
+                    // Draw locked position
+                    if (DLRTEST_IS_LOCKED()) {
+                        const int w = 15;
+                        const int h = 15;
+                        SDL_Rect box;
+                        if ( ! envs[i].inner.sw.crosshairs) {
+                            SDL_Surface * src = SDL_CreateRGBSurface(0, w, h, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+                            if (src) {
+                                // Clear entire surface:
+                                SDL_FillRect(src, NULL, 0x00000000);
+
+                                // Draw vertical bar:
+                                box = {w/2, 0, 1, h};
+                                SDL_FillRect(src, &box, 0xffff0000);
+
+                                // Draw horizontal bar:
+                                box = {0, h/2, w, 1};
+                                SDL_FillRect(src, &box, 0xffff0000);
+
+                                // Draw outside of inner box:
+                                box = {(w/2)-3, (h/2)-3, 7, 7};
+                                SDL_FillRect(src, &box, 0xffff0000);
+
+                                // Clear inside of inner box:
+                                box = {(w/2)-1, (h/2)-1, 3, 3};
+                                SDL_FillRect(src, &box, 0x00000000);
+
+                                // Convert to texture:
+                                envs[i].inner.sw.crosshairs = SDL_CreateTextureFromSurface(r, src);
+                                SDL_FreeSurface(src);
+                            }
+                        }
+                        if (envs[i].inner.sw.crosshairs) {
+                            box = {lockedX-(w/2), lockedY-(h/2), w, h};
+                            SDL_RenderCopy(r, envs[i].inner.sw.crosshairs, NULL, &box);
+                        }
+                    }
+
+                    SDL_RenderPresent(r);
+                } break;
+
+                case DLRTEST_TYPE_OPENGL1: {
+                    SDL_GL_SwapWindow(envs[i].window);
+                } break;
+
+                case DLRTEST_TYPE_D3D10: {
+#if DLRTEST_D3D10
+                    HRESULT hr = envs[i].inner.d3d10.swapChain->Present(0, 0);   // present without vsymc
+                    if (FAILED(hr)) {
+                        SDL_Log("swap chain Present() failed");
+                        exit(1);
+                    }
+#endif
+                } break;
+            }
+        } // end of headless check
+    }
+
+    if (numTicksToQuit > 0) {
+        --numTicksToQuit;
+    }
+}
+
 int main(int argc, char ** argv) {
     bool run_fixed_point_tests = true;
     for (int i = 1; i < argc; ++i) {
@@ -1554,186 +1737,19 @@ int main(int argc, char ** argv) {
 
     // Performance measurement stuff:
     printf("# %-15s %-15s\n", "t,seconds", "fps");
-    int numTicksToNextMeasurement = numTicksBetweenPerfMeasurements;
-    const Uint64 initialMeasurement = SDL_GetPerformanceCounter();
-    Uint64 lastMeasurement = initialMeasurement;
+    numTicksToNextMeasurement = numTicksBetweenPerfMeasurements;
+    initialMeasurement = SDL_GetPerformanceCounter();
+    lastMeasurement = initialMeasurement;
 
     // Render loop: process events, then draw.  Repeat until app is done.
-    uint64_t totalTicks = 0;
-    while (numTicksToQuit != 0) {
-        if (numTicksToQuit == 0) {
-            exit(0);
-        }
-
-        totalTicks++;
-        numTicksToNextMeasurement--;
-        if (numTicksToNextMeasurement == 0) {
-            Uint64 now = SDL_GetPerformanceCounter();
-            double dtInMS = (double)((now - lastMeasurement) * 1000) / SDL_GetPerformanceFrequency();
-            double fps = (double)numTicksBetweenPerfMeasurements / (dtInMS / 1000.0);
-            //SDL_Log("%f ms for %d ticks ; %f FPS\n", dtInMS, numTicksBetweenPerfMeasurements, fps);
-            double totalDtInS = (double)((now - initialMeasurement) * 1) / SDL_GetPerformanceFrequency();
-            printf("  %-15.5f %-15.5f\n", totalDtInS, fps);
-            lastMeasurement = now;
-            numTicksToNextMeasurement = numTicksBetweenPerfMeasurements;
-        }
-
-        // Process events
-        SDL_Event e;
-        while (SDL_PollEvent(&e)) {
-            DLR_Test_ProcessEvent(e);
-        }
-
-        // Create a view matrix for OpenGL and/or D3D10 use
-        gbMat4 rotateX;
-        gb_mat4_rotate(&rotateX, {1, 0, 0}, (float)M_PI);
-        gbMat4 translateXY;
-        gb_mat4_translate(&translateXY, {-1.f, -1.f, 0});
-        gbMat4 scaleXY;
-        gb_mat4_scale(&scaleXY, {2.f/(float)winW, 2.f/(float)winH, 1});
-        gbMat4 finalM;
-        gb_mat4_mul(&finalM, &rotateX, &translateXY);
-        gb_mat4_mul(&finalM, &finalM, &scaleXY);
-
-        // Draw
-        for (int i = 0; i < num_envs; ++i) {
-            DLRTest_Env * env = &envs[i];
-
-            // Init Scene
-            switch (env->type) {
-                case DLRTEST_TYPE_SOFTWARE: {
-                } break;
-
-                case DLRTEST_TYPE_OPENGL1: {
-                    SDL_GL_MakeCurrent(envs[i].window, env->inner.gl.gl);
-                    glClearColor(0, 0, 0, 1);
-                    glClear(GL_COLOR_BUFFER_BIT);
-                    glLoadMatrixf(finalM.e);
-                } break;
-
-                case DLRTEST_TYPE_D3D10: {
-#if DLRTEST_D3D10
-                    envs[i].inner.d3d10.viewMatrix->SetMatrix(finalM.e);
-#endif
-                } break;
-            }
-
-            // Render Scene
-            if ( ! (env->flags & DLRTEST_ENV_COMPARE)) {
-                DLRTest_DrawScene(&envs[i]);
-            } else {
-                // Draw diff between scenes 0 and 1
-                SDL_Surface * dest = DLRTest_GetSurfaceForView(&envs[i]);
-                SDL_Surface * A = DLRTest_GetSurfaceForView(&envs[0]);
-                SDL_Surface * B = DLRTest_GetSurfaceForView(&envs[1]);
-                if (dest) {
-                    for (int y = 0; y < dest->h; ++y) {
-                        for (int x = 0; x < dest->w; ++x) {
-                            Uint32 dc = 0xffff0000;
-                            if (A && B) {
-                                Uint32 ac = DLR_GetPixel32(A->pixels, A->pitch, 4, x, y);
-                                int aa, ar, ag, ab;
-                                DLR_SplitARGB32(ac, aa, ar, ag, ab);
-
-                                Uint32 bc = DLR_GetPixel32(B->pixels, B->pitch, 4, x, y);
-                                int ba, br, bg, bb;
-                                DLR_SplitARGB32(bc, ba, br, bg, bb);
-
-                                int beyond = 0;
-                                if (compare & DLRTEST_COMPARE_A) {
-                                    beyond |= abs(aa - ba) > compare_threshold;
-                                }
-                                if (compare & DLRTEST_COMPARE_R) {
-                                    beyond |= abs(ar - br) > compare_threshold;
-                                }
-                                if (compare & DLRTEST_COMPARE_G) {
-                                    beyond |= abs(ag - bg) > compare_threshold;
-                                }
-                                if (compare & DLRTEST_COMPARE_B) {
-                                    beyond |= abs(ab - bb) > compare_threshold;
-                                }
-
-                                dc = beyond ? 0xffffffff : 0x00000000;
-                            }
-                            DLR_SetPixel32(dest->pixels, dest->pitch, 4, x, y, dc);
-                        }
-                    }
-                }
-            }
-
-            // Present rendered scene
-            if ( ! (envs[i].flags & DLRTEST_ENV_HEADLESS)) {
-                switch (env->type) {
-                    case DLRTEST_TYPE_SOFTWARE: {
-                        SDL_Renderer * r = SDL_GetRenderer(envs[i].window);
-                        SDL_UpdateTexture(env->inner.sw.bgTex, NULL, env->inner.sw.bg->pixels, env->inner.sw.bg->pitch);
-                        SDL_SetRenderDrawColor(r, 0, 0, 0, 0xff);
-                        SDL_RenderClear(r);
-                        SDL_RenderCopy(r, envs[i].inner.sw.bgTex, NULL, NULL);
-
-                        // Draw locked position
-                        if (DLRTEST_IS_LOCKED()) {
-                            const int w = 15;
-                            const int h = 15;
-                            SDL_Rect box;
-                            if ( ! envs[i].inner.sw.crosshairs) {
-                                SDL_Surface * src = SDL_CreateRGBSurface(0, w, h, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-                                if (src) {
-                                    // Clear entire surface:
-                                    SDL_FillRect(src, NULL, 0x00000000);
-
-                                    // Draw vertical bar:
-                                    box = {w/2, 0, 1, h};
-                                    SDL_FillRect(src, &box, 0xffff0000);
-
-                                    // Draw horizontal bar:
-                                    box = {0, h/2, w, 1};
-                                    SDL_FillRect(src, &box, 0xffff0000);
-
-                                    // Draw outside of inner box:
-                                    box = {(w/2)-3, (h/2)-3, 7, 7};
-                                    SDL_FillRect(src, &box, 0xffff0000);
-
-                                    // Clear inside of inner box:
-                                    box = {(w/2)-1, (h/2)-1, 3, 3};
-                                    SDL_FillRect(src, &box, 0x00000000);
-
-                                    // Convert to texture:
-                                    envs[i].inner.sw.crosshairs = SDL_CreateTextureFromSurface(r, src);
-                                    SDL_FreeSurface(src);
-                                }
-                            }
-                            if (envs[i].inner.sw.crosshairs) {
-                                box = {lockedX-(w/2), lockedY-(h/2), w, h};
-                                SDL_RenderCopy(r, envs[i].inner.sw.crosshairs, NULL, &box);
-                            }
-                        }
-
-                        SDL_RenderPresent(r);
-                    } break;
-
-                    case DLRTEST_TYPE_OPENGL1: {
-                        SDL_GL_SwapWindow(envs[i].window);
-                    } break;
-
-                    case DLRTEST_TYPE_D3D10: {
-    #if DLRTEST_D3D10
-                        HRESULT hr = envs[i].inner.d3d10.swapChain->Present(0, 0);   // present without vsymc
-                        if (FAILED(hr)) {
-                            SDL_Log("swap chain Present() failed");
-                            exit(1);
-                        }
-    #endif
-                    } break;
-                }
-            } // end of headless check
-        }
-
-        if (numTicksToQuit > 0) {
-            --numTicksToQuit;
-        }
+    totalTicks = 0;
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(DLRTest_Tick, 60, 1);
+#else
+    while (true) {
+        DLRTest_Tick();
     }
-
+#endif
 
     return 0;
 }

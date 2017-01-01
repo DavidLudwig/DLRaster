@@ -1,5 +1,10 @@
 #!/bin/sh
-case "$(uname)" in
+if [ "$1" != "" ]; then
+	DLR_SYSTEM="$1"
+else
+	DLR_SYSTEM="$(uname)"
+fi
+case "$DLR_SYSTEM" in
 	Linux)
 		if ! type sdl2-config > /dev/null; then
 			>&2 echo "ERROR: Can't find SDL2 development tool, sdl2-config"
@@ -9,6 +14,9 @@ case "$(uname)" in
 		;;
 	Darwin)
 		echo "-F external -framework SDL2 -I external/SDL2.framework/Headers -framework OpenGL -rpath \"@executable_path/external\""
+		;;
+	emscripten)
+		echo "-s USE_SDL=2"
 		;;
 	*)
 		>&2 echo "ERROR: Unknown platform for DL_Raster test program's Makefile!"
