@@ -348,7 +348,7 @@ static void DLRTest_UpdateWindowTitles()
 void DLRTest_DrawTriangles_OpenGL1(
     DLRTest_Env *,
     DLR_State * state,
-    DLR_VertexD * vertices,
+    const DLR_VertexD * vertices,
     size_t vertexCount)
 {
     DLRTest_CheckGL();
@@ -689,7 +689,7 @@ technique10 TextureTechnique {
 void DLRTest_DrawTriangles_D3D10(
     DLRTest_Env * env,
     DLR_State * state,
-    DLR_VertexD * vertices,
+    const DLR_VertexD * vertices,
     size_t vertexCount)
 {
     struct InnerVertex {
@@ -864,6 +864,33 @@ void DLRTest_DrawTriangles_D3D10(
 }
 #endif
 
+DLR_SurfaceRef DLRTest_SDLToDLRSurfaceNoCopy(SDL_Surface * src)
+{
+    DLR_SurfaceRef dest = {0};
+    if (src) {
+        dest.w = src->w;
+        dest.h = src->h;
+        dest.pitch = src->pitch;
+        dest.pixels = src->pixels;
+    }
+    return dest;
+}
+
+enum DLRTest_State_Flags : uintptr_t {
+    DLRTEST_STATE_DID_INIT = (1 << 0),
+};
+
+bool DLRTest_InitState(DLRTest_Env * env, DLR_State * state) {
+    SDL_Surface * bg = (env->type == DLRTEST_TYPE_SOFTWARE) ? env->inner.sw.bg : NULL;
+    state->dest = DLRTest_SDLToDLRSurfaceNoCopy(bg);
+    if (((uintptr_t)state->userData & DLRTEST_STATE_DID_INIT)) {
+        return false;
+    } else {
+        state->userData = reinterpret_cast<void *>(((uintptr_t)state->userData) | DLRTEST_STATE_DID_INIT);
+        return true;
+    }
+}
+
 void DLRTest_Clear(
     DLRTest_Env * env,
     DLR_State * state,
@@ -902,10 +929,19 @@ void DLRTest_Clear(
     }
 }
 
+void DLRTest_Clear(
+    DLRTest_Env * env,
+    Uint32 color)
+{
+    static DLR_State state;
+    DLRTest_InitState(env, &state);
+    DLRTest_Clear(env, &state, 0xff000000);
+}
+
 void DLRTest_DrawTriangles(
     DLRTest_Env * env,
     DLR_State * state,
-    DLR_VertexD * vertices,
+    const DLR_VertexD * vertices,
     size_t vertexCount)
 {
     switch (env->type) {
@@ -923,172 +959,163 @@ void DLRTest_DrawTriangles(
     }
 }
 
-DLR_SurfaceRef DLRTest_SDLToDLRSurfaceNoCopy(SDL_Surface * src)
-{
-    DLR_SurfaceRef dest = {0};
-    if (src) {
-        dest.w = src->w;
-        dest.h = src->h;
-        dest.pitch = src->pitch;
-        dest.pixels = src->pixels;
+enum DLRTest_TextureType {
+    DLRTEST_TEXTURE_FROM_IMAGE          = 0,
+    DLRTEST_TEXTURE_NONE                = 1,
+    DLRTEST_TEXTURE_ALL_WHITE           = 2,
+    DLRTEST_TEXTURE_VERTICAL_GRADIENT   = 3,
+    DLRTEST_TEXTURE_HORIZONTAL_GRADIENT = 4,
+};
+
+SDL_Surface * DLRTest_CreateTexture256x256(const DLRTest_TextureType textureType) {
+    SDL_Surface * textureSrc = NULL;
+    switch (textureType) {
+        case DLRTEST_TEXTURE_FROM_IMAGE: {
+            textureSrc = SDL_LoadBMP_RW(SDL_RWFromMem(texture_bmp, texture_bmp_len), 1);
+        } break;
+
+        case DLRTEST_TEXTURE_NONE: {
+            textureSrc = NULL;
+        } break;
+
+        case DLRTEST_TEXTURE_ALL_WHITE: {
+            textureSrc = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+            SDL_FillRect(textureSrc, NULL, 0xFFFFFFFF);
+        } break;
+
+        case DLRTEST_TEXTURE_VERTICAL_GRADIENT: {
+            textureSrc = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+            for (int y = 0; y < 256; ++y) {
+                for (int x = 0; x < 256; ++x) {
+                    Uint32 c = DLR_JoinARGB32(0xff, y, y, y);
+                    //Uint32 c = (y == 100) ? 0xffffffff : 0x88888888;
+                    DLR_SetPixel32(textureSrc->pixels, textureSrc->pitch, 4, x, y, c);
+                }
+            }
+        } break;
+
+        case DLRTEST_TEXTURE_HORIZONTAL_GRADIENT: {
+            textureSrc = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+            for (int y = 0; y < 256; ++y) {
+                for (int x = 0; x < 256; ++x) {
+                    Uint32 c = DLR_JoinARGB32(0xff, x, x, x);
+                    DLR_SetPixel32(textureSrc->pixels, textureSrc->pitch, 4, x, y, c);
+                }
+            }
+        } break;
     }
-    return dest;
+
+    if (textureSrc) {
+        DLRTest_Assert(textureSrc->w == 256);
+        DLRTest_Assert(textureSrc->h == 256);
+    }
+    return textureSrc;
 }
+
+namespace DLRTest_Shape_Multi_Color_Triangle
+{
+    const DLR_Float originX = 20;
+    const DLR_Float originY = 20;
+    const struct { float a, r, g, b; } c[] = {
+        {1, 1, 0, 0},
+        {1, 0, 1, 0},
+        {1, 0, 0, 1},
+    };
+    const DLR_VertexD vertices[] = {
+        {originX      , originY      ,    c[0].b, c[0].g, c[0].r, c[0].a,   0, 0},
+        {originX + 300, originY + 150,    c[1].b, c[1].g, c[1].r, c[1].a,   0, 0},
+        {originX + 150, originY + 300,    c[2].b, c[2].g, c[2].r, c[2].a,   0, 0},
+    };
+}
+
+namespace DLRTest_Shape_Textured_Square
+{
+    const DLR_Float originX = 200.51;
+    const DLR_Float originY = 20.;
+    const struct { DLR_Float b, g, r, a; } c[] = {
+        { 0.3, 0.3,   1,   1},  // left  top
+        { 0.3,   1, 0.3,   1},  // right top
+        {   1, 0.3, 0.3,   1},  // right bottom
+        {   1,   1,   1, 0.5},  // left  bottom
+    };
+
+    const int texW = 256;
+    const int texH = 256;
+
+    const DLR_VertexD vertices[] = {
+        // TRIANGLE: top-right
+        {originX       , originY,           c[0].b, c[0].g, c[0].r, c[0].a,    0, 0},    // left  top
+        {originX + texW, originY,           c[1].b, c[1].g, c[1].r, c[1].a,    1, 0},    // right top
+        {originX + texW, originY + texH,    c[2].b, c[2].g, c[2].r, c[2].a,    1, 1},    // right bottom
+
+        // TRIANGLE: bottom-left
+        {originX + texW, originY + texH,    c[2].b, c[2].g, c[2].r, c[2].a,    1, 1},    // right bottom
+        {originX       , originY + texH,    c[3].b, c[3].g, c[3].r, c[3].a,    0, 1},    // left  bottom
+        {originX       , originY       ,    c[0].b, c[0].g, c[0].r, c[0].a,    0, 0},    // left  top
+    };
+}
+
+void DLRTest_Scene_Mix1(DLRTest_Env * env)
+{
+    DLRTest_Clear(env, 0xff000000);
+
+    {
+        using namespace DLRTest_Shape_Multi_Color_Triangle;
+        static DLR_State state;
+        DLRTest_InitState(env, &state);
+        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
+    }
+
+    {
+        using namespace DLRTest_Shape_Textured_Square;
+        static DLR_State state;
+        if (DLRTest_InitState(env, &state)) {
+            SDL_Surface * textureSrc = DLRTest_CreateTexture256x256(DLRTEST_TEXTURE_FROM_IMAGE);
+            state.texture = DLRTest_SDLToDLRSurfaceNoCopy(textureSrc);
+            state.textureModulate = DLR_TEXTUREMODULATE_COLOR;
+            state.blendMode = DLR_BLENDMODE_BLEND;
+        }
+        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
+    }
+}
+
+void DLRTest_Scene_Mix1Plain(DLRTest_Env * env)
+{
+    DLRTest_Clear(env, 0xff000000);
+
+    {
+        using namespace DLRTest_Shape_Multi_Color_Triangle;
+        static DLR_State state;
+        DLRTest_InitState(env, &state);
+        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
+    }
+
+    {
+        using namespace DLRTest_Shape_Textured_Square;
+        static DLR_State state;
+        DLRTest_InitState(env, &state);
+        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
+    }
+}
+
+
+struct DLRTest_Scene {
+    const char * name;
+    void (*draw)(DLRTest_Env *);
+};
+
+static DLRTest_Scene allScenes[] = {
+    { "Mix1", &DLRTest_Scene_Mix1 },
+    { "Mix1Plain", &DLRTest_Scene_Mix1Plain },
+};
+
+static DLRTest_Scene * scene = &allScenes[0];
+static const DLRTest_Scene * defaultScene = scene;
 
 void DLRTest_DrawScene(DLRTest_Env * env)
 {
-    SDL_Surface * bg = (env->type == DLRTEST_TYPE_SOFTWARE) ? env->inner.sw.bg : NULL;
-
-    {
-        static DLR_State state;
-        state.dest = DLRTest_SDLToDLRSurfaceNoCopy(bg);
-        DLRTest_Clear(env, &state, 0xff000000);
-    }
-
-    //DLR_Vertex a = {100.f, 100.f, 1, 0, 0};
-    //DLR_Vertex b = {500.f, 300.f, 0, 1, 0};
-    //DLR_Vertex c = {300.f, 500.f, 0, 0, 1};
-    //DLRTest_DrawTriangle(bg, a, b, c);
-
-    //
-    // Multi-color triangle
-    //
-    if (1) {
-        static DLR_State state;
-        static int didInitState = 0;
-        if (!didInitState) {
-            memset(&state, 0, sizeof(state));
-            didInitState = 1;
-        }
-        state.dest = DLRTest_SDLToDLRSurfaceNoCopy(bg);
-
-        DLR_Float originX = 20;
-        DLR_Float originY = 20;
-        struct { float a, r, g, b; } c[] = {
-#if 1
-            {1, 1, 0, 0},
-            {1, 0, 1, 0},
-            {1, 0, 0, 1},
-#else
-            {1, 1, 1, 1},
-            {1, 1, 1, 1},
-            {1, 1, 1, 1},
-#endif
-        };
-        DLR_VertexD vertices[] = {
-            {originX      , originY      ,    c[0].b, c[0].g, c[0].r, c[0].a,   0, 0},
-            {originX + 300, originY + 150,    c[1].b, c[1].g, c[1].r, c[1].a,   0, 0},
-            {originX + 150, originY + 300,    c[2].b, c[2].g, c[2].r, c[2].a,   0, 0},
-        };
-        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
-    }
-
-    //
-    // Textured-Square
-    //
-    if (1) {
-        static DLR_State state;
-        static int didInitState = 0;
-        if (!didInitState) {
-            memset(&state, 0, sizeof(state));
-
-            enum DLRTest_TextureType {
-                DLRTEST_TEXTURE_FROM_IMAGE          = 0,
-                DLRTEST_TEXTURE_NONE                = 1,
-                DLRTEST_TEXTURE_ALL_WHITE           = 2,
-                DLRTEST_TEXTURE_VERTICAL_GRADIENT   = 3,
-                DLRTEST_TEXTURE_HORIZONTAL_GRADIENT = 4,
-            };
-            static const DLRTest_TextureType textureType = DLRTEST_TEXTURE_FROM_IMAGE;
-            //static const DLRTest_TextureType textureType = (DLRTest_TextureType) 1;
-            SDL_Surface * textureSrc = NULL;
-            switch (textureType) {
-                case DLRTEST_TEXTURE_FROM_IMAGE: {
-                    textureSrc = SDL_LoadBMP_RW(SDL_RWFromMem(texture_bmp, texture_bmp_len), 1);
-                } break;
-
-                case DLRTEST_TEXTURE_NONE: {
-                    textureSrc = NULL;
-                } break;
-
-                case DLRTEST_TEXTURE_ALL_WHITE: {
-                    textureSrc = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-                    SDL_FillRect(textureSrc, NULL, 0xFFFFFFFF);
-                } break;
-
-                case DLRTEST_TEXTURE_VERTICAL_GRADIENT: {
-                    textureSrc = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-                    for (int y = 0; y < 256; ++y) {
-                        for (int x = 0; x < 256; ++x) {
-                            Uint32 c = DLR_JoinARGB32(0xff, y, y, y);
-                            //Uint32 c = (y == 100) ? 0xffffffff : 0x88888888;
-                            DLR_SetPixel32(textureSrc->pixels, textureSrc->pitch, 4, x, y, c);
-                        }
-                    }
-                } break;
-
-                case DLRTEST_TEXTURE_HORIZONTAL_GRADIENT: {
-                    textureSrc = SDL_CreateRGBSurface(0, 256, 256, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-                    for (int y = 0; y < 256; ++y) {
-                        for (int x = 0; x < 256; ++x) {
-                            Uint32 c = DLR_JoinARGB32(0xff, x, x, x);
-                            DLR_SetPixel32(textureSrc->pixels, textureSrc->pitch, 4, x, y, c);
-                        }
-                    }
-                } break;
-            }
-            state.texture = DLRTest_SDLToDLRSurfaceNoCopy(textureSrc);
-            didInitState = 1;
-        }
-        state.dest = DLRTest_SDLToDLRSurfaceNoCopy(bg);
-        state.textureModulate = DLR_TEXTUREMODULATE_COLOR;
-        state.blendMode = DLR_BLENDMODE_BLEND;
-
-        int texW, texH;
-        if (state.texture.pixels) {
-            texW = state.texture.w;
-            texH = state.texture.h;
-        } else {
-            texW = texH = 256;
-        }
-
-        DLR_Float originX = 200.51;
-        DLR_Float originY = 20.;
-        struct { DLR_Float a, r, g, b; } c[] = {
-#if 1    // multi-color
-            {   1,   1, 0.3, 0.3},  // left  top
-            {   1, 0.3,   1, 0.3},  // right top
-            {   1, 0.3, 0.3,   1},  // right bottom
-            { 0.5,   1,   1,   1},  // left  bottom
-#elif 0  // this one is slightly-off in OpenGL
-            { 0.5,   0,   1,   0},  // left  top
-            { 0.5,   1,   0,   0},  // right top (X)
-            { 0.5,   1,   0,   0},  // right bottom
-            { 0.5,   0,   1,   0},  // left  bottom
-#else    // all white
-            {   1,   1,   1,   1},  // left  top
-            {   1,   1,   1,   1},  // right top
-            {   1,   1,   1,   1},  // right bottom
-            {   1,   1,   1,   1},  // left  bottom
-#endif
-        };
-
-        DLR_VertexD vertices[] = {
-#if 1
-            // TRIANGLE: top-right
-            {originX       , originY,           c[0].b, c[0].g, c[0].r, c[0].a,    0, 0},    // left  top
-            {originX + texW, originY,           c[1].b, c[1].g, c[1].r, c[1].a,    1, 0},    // right top
-            {originX + texW, originY + texH,    c[2].b, c[2].g, c[2].r, c[2].a,    1, 1},    // right bottom
-#endif
-
-#if 1
-            // TRIANGLE: bottom-left
-            {originX + texW, originY + texH,    c[2].b, c[2].g, c[2].r, c[2].a,    1, 1},    // right bottom
-            {originX       , originY + texH,    c[3].b, c[3].g, c[3].r, c[3].a,    0, 1},    // left  bottom
-            {originX       , originY       ,    c[0].b, c[0].g, c[0].r, c[0].a,    0, 0},    // left  top
-#endif
-        };
-        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
+    if (scene && scene->draw) {
+        scene->draw(env);
     }
 }
 
@@ -1605,15 +1632,18 @@ int main(int argc, char ** argv) {
             printf("DL_Raster test app\n"
                    "\n"
                    "Usage: \n"
-                   "\ttest [--headless] [--perf] [-n N] [-t N]\n"
+                   "\ttest [--headless] [--perf] [-n N] [-t N] [--scene NAME] [--list|-l]\n"
                    "\n"
                    "Options:\n"
-                   "\t--headless    Run in headless-mode (without displaying any GUIs)\n"
-                   "\t-n N          Run for N ticks, then quit, or -1 to run indefinitely (default: -1)\n"
-                   "\t--perf        Run in performance-testing mode, with only one window/renderer, and without running fixed-point tests\n"
-                   "\t-t N          Log a performance measurement every N ticks (default: %d)\n"
+                   "\t--headless        Run in headless-mode (without displaying any GUIs)\n"
+                   "\t-n N              Run for N ticks, then quit, or -1 to run indefinitely (default: -1)\n"
+                   "\t--perf            Run in performance-testing mode, with only one window/renderer, and without running fixed-point tests\n"
+                   "\t-t N              Log a performance measurement every N ticks (default: %d)\n"
+                   "\t--scene | -s NAME Renders a particular scene, NAME is case-insensitive (default: %s)\n"
+                   "\t--list | -l       Lists available scenes\n"
                    "\n",
-                   numTicksBetweenPerfMeasurements
+                   numTicksBetweenPerfMeasurements,
+                   defaultScene->name
                    );
             exit(0);
         } else if (strcmp(argv[i], "--headless") == 0) {
@@ -1622,7 +1652,7 @@ int main(int argc, char ** argv) {
             }
         } else if (strcmp(argv[i], "--perf") == 0) {
             num_envs = 1;
-            run_fixed_point_tests = false;
+            //run_fixed_point_tests = false;
         } else if (strcmp(argv[i], "-n") == 0) {
             if ((i + 1) < argc) {
                 numTicksToQuit = atoi(argv[i+1]);
@@ -1633,6 +1663,26 @@ int main(int argc, char ** argv) {
                 numTicksBetweenPerfMeasurements = atoi(argv[i+1]);
                 i++;
             }
+        } else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--scene") == 0) {
+            if ((i + 1) < argc) {
+                int j;
+                for (j = 0; j < SDL_arraysize(allScenes); ++j) {
+                    if (strcasecmp(argv[i+1], allScenes[j].name) == 0) {
+                        scene = &allScenes[j];
+                        break;
+                    }
+                }
+                if (j == SDL_arraysize(allScenes)) {
+                    printf("ERROR: Unable to find scene named, \"%s\".\nUse -l or --list to list possible scene names.\n", argv[i+1]);
+                    exit(1);
+                }
+                i++;
+            }
+        } else if (strcmp(argv[i], "-l") == 0 || strcmp(argv[i], "--list") == 0) {
+            for (int j = 0; j < SDL_arraysize(allScenes); ++j) {
+                printf("%s\n", allScenes[j].name);
+            }
+            exit(0);
         }
     }
     

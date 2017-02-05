@@ -140,6 +140,7 @@ typedef struct DLR_State {
     DLR_SurfaceRef texture;     // a NON-owning pointer!
     DLR_BlendMode blendMode;
     DLR_TextureModulate textureModulate;
+    void * userData;
 } DLR_State;
 
 #define DLR_GetPixel32(PIXELS, PITCH, BYTESPP, X, Y) \
