@@ -313,18 +313,22 @@ inline DLR_Color<uint8_t> DLR_ConvertColorToBytes(const DLR_Color<DLR_Number> & 
 }
 
 template <typename DLR_Number>
-inline DLR_Color<DLR_Number> DLR_ConvertColorFromBytes(const DLR_Color<uint8_t> & in) {
-    return (DLR_Color<DLR_Number>)in / (DLR_Number)DLR_MAX_COLOR_COMPONENT;
+inline DLR_Number DLR_ConvertColorComponentFromByte(uint8_t in) {
+    return (DLR_Number)in / (DLR_Number)DLR_MAX_COLOR_COMPONENT;
 }
 
 template <>
-inline DLR_Color<DLR_Fixed> DLR_ConvertColorFromBytes(const DLR_Color<uint8_t> & in) {
-    //return ((DLR_Color<DLR_Fixed>)(in)) >> 8;
+inline DLR_Fixed DLR_ConvertColorComponentFromByte(uint8_t in) {
+    return DLR_Fixed::FromRaw(((int32_t)in) << (DLR_Fixed::Precision - 8));
+}
+
+template <typename DLR_Number>
+inline DLR_Color<DLR_Number> DLR_ConvertColorFromBytes(const DLR_Color<uint8_t> & in) {
     return {
-        DLR_Fixed::FromRaw(((int32_t)in.B) << (DLR_Fixed::Precision - 8)),
-        DLR_Fixed::FromRaw(((int32_t)in.G) << (DLR_Fixed::Precision - 8)),
-        DLR_Fixed::FromRaw(((int32_t)in.R) << (DLR_Fixed::Precision - 8)),
-        DLR_Fixed::FromRaw(((int32_t)in.A) << (DLR_Fixed::Precision - 8)),
+        DLR_ConvertColorComponentFromByte<DLR_Number>(in.B),
+        DLR_ConvertColorComponentFromByte<DLR_Number>(in.G),
+        DLR_ConvertColorComponentFromByte<DLR_Number>(in.R),
+        DLR_ConvertColorComponentFromByte<DLR_Number>(in.A),        
     };
 }
 
