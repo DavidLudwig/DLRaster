@@ -261,7 +261,12 @@ struct DLR_Color {
         A = (DLR_ColorComponent) other.A;
     }
 
-    explicit DLR_Color(DLR_Color<uint8_t> other);
+    explicit DLR_Color(DLR_Color<uint8_t> other) {
+        B = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.B);
+        G = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.G);
+        R = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.R);
+        A = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.A);
+    }
 
     DLR_Color<uint8_t> ToBytes() const {
         return {
@@ -325,15 +330,6 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
     } else {
         return true;
     }
-}
-
-template <typename DLR_ColorComponent>
-DLR_Color<DLR_ColorComponent>::DLR_Color(DLR_Color<uint8_t> other)
-{
-    B = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.B);
-    G = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.G);
-    R = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.R);
-    A = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.A);
 }
 
 template <typename DLR_Number, typename DLR_Vertex, typename DLR_NumberBig>
