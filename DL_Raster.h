@@ -430,7 +430,6 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
-#if 1   // original
                         DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
                         DLR_Color<DLR_Number> fdest = (DLR_Color<DLR_Number>) ndest;
 
@@ -445,36 +444,6 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                         ndest = (DLR_Color<uint8_t>) fdest;
                         DLR_AssertValidColor8888(ndest);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, ndest.ToARGB32());
-#else   // little-endian optimized
-                        const uint32_t ndest_raw = DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
-                        DLR_Color<uint8_t> ndest = *((DLR_Color<uint8_t> *)(& ndest_raw ));
-
-                        DLR_Color<DLR_Number> fdest = {
-                            DLR_Fixed::FromRaw(((int32_t)ndest.a) << (DLR_Fixed::Precision - 8)),
-                            DLR_Fixed::FromRaw(((int32_t)ndest.r) << (DLR_Fixed::Precision - 8)),
-                            DLR_Fixed::FromRaw(((int32_t)ndest.g) << (DLR_Fixed::Precision - 8)),
-                            DLR_Fixed::FromRaw(((int32_t)ndest.b) << (DLR_Fixed::Precision - 8)),
-                        };
-
-                        // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-                        fdest.r = (fincomingC.r * fincomingC.a) + (fdest.r * ((DLR_Number)1 - fincomingC.a));
-                        fdest.g = (fincomingC.g * fincomingC.a) + (fdest.g * ((DLR_Number)1 - fincomingC.a));
-                        fdest.b = (fincomingC.b * fincomingC.a) + (fdest.b * ((DLR_Number)1 - fincomingC.a));
-
-                        // dstA = srcA + (dstA * (1-srcA))
-                        fdest.a = fincomingC.a + (fdest.a * ((DLR_Number)1 - fincomingC.a));
-
-                        //ndest = (DLR_Color<uint8_t>) fdest;
-                        ndest = {
-                            (uint8_t)((fdest.b.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-                            (uint8_t)((fdest.g.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-                            (uint8_t)((fdest.r.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-                            (uint8_t)((fdest.a.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-                        };
-
-                        //DLR_AssertValidColor8888(ndest);
-                        DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, *((uint32_t *)(&ndest)));
-#endif
                     } break;
                 } // switch (blendMode)
             } // if (overlaps)
