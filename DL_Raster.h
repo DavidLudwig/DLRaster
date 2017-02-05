@@ -274,11 +274,11 @@ struct DLR_Color {
     DLR_Color operator + (DLR_Color other) const { return {b + other.b, g + other.g, r + other.r, a + other.a}; }
     DLR_Color operator * (DLR_Color other) const { return {b * other.b, g * other.g, r * other.r, a * other.a}; }
 
-    template <typename DLr_Coefficient>
-    DLR_Color operator * (DLr_Coefficient coeff) const { return {b * coeff, g * coeff, r * coeff, a * coeff}; }
+    template <typename DLR_Coefficient>
+    DLR_Color operator * (DLR_Coefficient coeff) const { return {b * coeff, g * coeff, r * coeff, a * coeff}; }
 
-    template <typename DLr_Coefficient>
-    DLR_Color operator / (DLr_Coefficient coeff) const { return {b / coeff, g / coeff, r / coeff, a / coeff}; }
+    template <typename DLR_Coefficient>
+    DLR_Color operator / (DLR_Coefficient coeff) const { return {b / coeff, g / coeff, r / coeff, a / coeff}; }
 
     DLR_Color operator >> (unsigned int shift) const { return {b >> shift, g >> shift, r >> shift, a >> shift}; }
     DLR_Color operator << (unsigned int shift) const { return {b << shift, g << shift, r << shift, a << shift}; }
