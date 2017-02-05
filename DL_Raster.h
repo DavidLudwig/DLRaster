@@ -188,12 +188,12 @@ DLR_EXTERN_C void DLR_DrawTriangleX(
 
 DLR_EXTERN_C void DLR_DrawTrianglesX(
     DLR_State * state,
-    DLR_VertexX * vertices,
+    const DLR_VertexX * vertices,
     size_t vertexCount);
 
 DLR_EXTERN_C void DLR_DrawTrianglesD(
     DLR_State * state,
-    DLR_VertexD * vertices,
+    const DLR_VertexD * vertices,
     size_t vertexCount);
 
 #endif // ifndef DL_RASTER_H
@@ -467,14 +467,14 @@ DLR_EXTERN_C void DLR_DrawTriangleX(DLR_State * state, DLR_VertexX v0, DLR_Verte
     DLR_DrawTriangleT<DLR_Fixed, DLR_VertexX, DLR_FixedBig>(state, v0, v1, v2);
 }
 
-DLR_EXTERN_C void DLR_DrawTrianglesX(DLR_State * state, DLR_VertexX * vertices, size_t vertexCount)
+DLR_EXTERN_C void DLR_DrawTrianglesX(DLR_State * state, const DLR_VertexX * vertices, size_t vertexCount)
 {
     for (size_t i = 0; (i + 2) < vertexCount; i += 3) {
         DLR_DrawTriangleX(state, vertices[i], vertices[i+1], vertices[i+2]);
     }
 }
 
-DLR_EXTERN_C void DLR_DrawTrianglesD(DLR_State * state, DLR_VertexD * vertices, size_t vertexCount)
+DLR_EXTERN_C void DLR_DrawTrianglesD(DLR_State * state, const DLR_VertexD * vertices, size_t vertexCount)
 {
     DLR_VertexX converted[3];
     for (size_t i = 0; (i + 2) < vertexCount; i += 3) {
