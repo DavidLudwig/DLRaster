@@ -66,6 +66,9 @@ struct DLR_FixedT {
     inline DLR_FixedT operator*(DLR_FixedT b) const { return FromRaw(((DLR_IntegerBig)data * (DLR_IntegerBig)b.data) >> DLR_Precision); }
     inline DLR_FixedT operator>>(unsigned int shift) const { return FromRaw(data >> shift); }
     inline DLR_FixedT operator<<(unsigned int shift) const { return FromRaw(data << shift); }
+
+    inline DLR_FixedT & operator+=(DLR_FixedT b) { *this = *this + b; return *this; }
+
     inline bool operator==(DLR_FixedT b) const { return data == b.data; }
     inline bool operator!=(DLR_FixedT b) const { return data != b.data; }
     inline bool operator<(DLR_FixedT b) const { return data < b.data; }
@@ -448,14 +451,14 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                 } // switch (blendMode)
             } // if (overlaps)
 
-            lambda0_proto = lambda0_proto + lambda0_xstep;
-            lambda1_proto = lambda1_proto + lambda1_xstep;
-            lambda2_proto = lambda2_proto + lambda2_xstep;
+            lambda0_proto += lambda0_xstep;
+            lambda1_proto += lambda1_xstep;
+            lambda2_proto += lambda2_xstep;
         } // for X
 
-        lambda0_row = lambda0_row + lambda0_ystep;
-        lambda1_row = lambda1_row + lambda1_ystep;
-        lambda2_row = lambda2_row + lambda2_ystep;
+        lambda0_row += lambda0_ystep;
+        lambda1_row += lambda1_ystep;
+        lambda2_row += lambda2_ystep;
     } // for Y
 }
 
