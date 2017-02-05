@@ -256,17 +256,6 @@ static uint32_t DLR_Join(DLR_Color<uint8_t> c) {
     return DLR_JoinARGB32(c.A, c.R, c.G, c.B);
 }
 
-template <typename DLR_Number>
-static DLR_Color<uint8_t> DLR_Round(DLR_Color<DLR_Number> c) {
-    return {
-        (uint8_t)(c.B + (DLR_Number)0.5f),
-        (uint8_t)(c.G + (DLR_Number)0.5f),
-        (uint8_t)(c.R + (DLR_Number)0.5f),
-        (uint8_t)(c.A + (DLR_Number)0.5f),
-    };
-}
-
-
 #define DLR_AssertValidColor8888(C) \
     DLR_Assert(C.B >= 0 && C.B <= 255); \
     DLR_Assert(C.G >= 0 && C.G <= 255); \
@@ -304,18 +293,22 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
 #define DLR_MAX_COLOR_COMPONENT 256
 
 template <typename DLR_Number>
-inline DLR_Color<uint8_t> DLR_ConvertColorToBytes(const DLR_Color<DLR_Number> & in) {
-    return DLR_Round(in * (DLR_Number)DLR_MAX_COLOR_COMPONENT);
+inline uint8_t DLR_ConvertColorComponentToByte(DLR_Number in) {
+    return (uint8_t)((in.B * (DLR_Number)DLR_MAX_COLOR_COMPONENT) + (DLR_Number)0.5f);
 }
 
 template <>
-inline DLR_Color<uint8_t> DLR_ConvertColorToBytes(const DLR_Color<DLR_Fixed> & in) {
-//    return DLR_Round(in << 8);
+inline uint8_t DLR_ConvertColorComponentToByte(DLR_Fixed in) {
+    return (uint8_t)((in.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data);
+}
+
+template <typename DLR_Number>
+inline DLR_Color<uint8_t> DLR_ConvertColorToBytes(const DLR_Color<DLR_Number> & in) {
     return {
-        (uint8_t)((in.B.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-        (uint8_t)((in.G.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-        (uint8_t)((in.R.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-        (uint8_t)((in.A.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+        DLR_ConvertColorComponentToByte(in.B),
+        DLR_ConvertColorComponentToByte(in.G),
+        DLR_ConvertColorComponentToByte(in.R),
+        DLR_ConvertColorComponentToByte(in.A),
     };
 }
 
