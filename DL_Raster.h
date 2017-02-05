@@ -208,6 +208,28 @@ DLR_EXTERN_C void DLR_Clear(
     }
 }
 
+#define DLR_MAX_COLOR_COMPONENT 256
+
+template <typename DLR_Number>
+inline uint8_t DLR_ConvertColorComponentToByte(DLR_Number in) {
+    return (uint8_t)((in.B * (DLR_Number)DLR_MAX_COLOR_COMPONENT) + (DLR_Number)0.5f);
+}
+
+template <>
+inline uint8_t DLR_ConvertColorComponentToByte(DLR_Fixed in) {
+    return (uint8_t)((in.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data);
+}
+
+template <typename DLR_Number>
+inline DLR_Number DLR_ConvertColorComponentFromByte(uint8_t in) {
+    return (DLR_Number)in / (DLR_Number)DLR_MAX_COLOR_COMPONENT;
+}
+
+template <>
+inline DLR_Fixed DLR_ConvertColorComponentFromByte(uint8_t in) {
+    return DLR_Fixed::FromRaw(((int32_t)in) << (DLR_Fixed::Precision - 8));
+}
+
 template <typename DLR_ColorComponent>
 struct DLR_Color {
     DLR_ColorComponent B;
@@ -240,6 +262,19 @@ struct DLR_Color {
     }
 
     explicit DLR_Color(DLR_Color<uint8_t> other);
+
+    DLR_Color<uint8_t> ToBytes() const {
+        return {
+            DLR_ConvertColorComponentToByte(B),
+            DLR_ConvertColorComponentToByte(G),
+            DLR_ConvertColorComponentToByte(R),
+            DLR_ConvertColorComponentToByte(A),
+        };
+    }
+
+    explicit operator DLR_Color<uint8_t>() const {
+        return ToBytes();
+    }
 
     DLR_Color operator + (DLR_Color other) const { return {B + other.B, G + other.G, R + other.R, A + other.A}; }
     DLR_Color operator * (DLR_Color other) const { return {B * other.B, G * other.G, R * other.R, A * other.A}; }
@@ -290,38 +325,6 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
     } else {
         return true;
     }
-}
-
-#define DLR_MAX_COLOR_COMPONENT 256
-
-template <typename DLR_Number>
-inline uint8_t DLR_ConvertColorComponentToByte(DLR_Number in) {
-    return (uint8_t)((in.B * (DLR_Number)DLR_MAX_COLOR_COMPONENT) + (DLR_Number)0.5f);
-}
-
-template <>
-inline uint8_t DLR_ConvertColorComponentToByte(DLR_Fixed in) {
-    return (uint8_t)((in.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data);
-}
-
-template <typename DLR_Number>
-inline DLR_Color<uint8_t> DLR_ConvertColorToBytes(const DLR_Color<DLR_Number> & in) {
-    return {
-        DLR_ConvertColorComponentToByte(in.B),
-        DLR_ConvertColorComponentToByte(in.G),
-        DLR_ConvertColorComponentToByte(in.R),
-        DLR_ConvertColorComponentToByte(in.A),
-    };
-}
-
-template <typename DLR_Number>
-inline DLR_Number DLR_ConvertColorComponentFromByte(uint8_t in) {
-    return (DLR_Number)in / (DLR_Number)DLR_MAX_COLOR_COMPONENT;
-}
-
-template <>
-inline DLR_Fixed DLR_ConvertColorComponentFromByte(uint8_t in) {
-    return DLR_Fixed::FromRaw(((int32_t)in) << (DLR_Fixed::Precision - 8));
 }
 
 template <typename DLR_ColorComponent>
@@ -439,7 +442,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                 // color is ARGB
                 switch (state->blendMode) {
                     case DLR_BLENDMODE_NONE: {
-                        const DLR_Color<uint8_t> nfinalC = DLR_ConvertColorToBytes(fincomingC);
+                        const DLR_Color<uint8_t> nfinalC = fincomingC.ToBytes();
                         DLR_AssertValidColor8888(nfinalC);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(nfinalC));
                     } break;
@@ -457,7 +460,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                         // dstA = srcA + (dstA * (1-srcA))
                         fdest.A = fincomingC.A + (fdest.A * ((DLR_Number)1 - fincomingC.A));
 
-                        ndest = DLR_ConvertColorToBytes(fdest);
+                        ndest = fdest.ToBytes();
                         DLR_AssertValidColor8888(ndest);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(ndest));
 #else   // little-endian optimized
@@ -479,7 +482,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                         // dstA = srcA + (dstA * (1-srcA))
                         fdest.A = fincomingC.A + (fdest.A * ((DLR_Number)1 - fincomingC.A));
 
-                        //ndest = DLR_ConvertColorToBytes(fdest);
+                        //ndest = fdest.ToBytes();
                         ndest = {
                             (uint8_t)((fdest.B.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
                             (uint8_t)((fdest.G.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
