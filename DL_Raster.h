@@ -269,6 +269,8 @@ struct DLR_Color {
         };
     }
 
+    uint32_t ToARGB32() const { return DLR_JoinARGB32(A, R, G, B); }
+
     DLR_Color operator + (DLR_Color other) const { return {B + other.B, G + other.G, R + other.R, A + other.A}; }
     DLR_Color operator * (DLR_Color other) const { return {B * other.B, G * other.G, R * other.R, A * other.A}; }
 
@@ -281,10 +283,6 @@ struct DLR_Color {
     DLR_Color operator >> (unsigned int shift) const { return {B >> shift, G >> shift, R >> shift, A >> shift}; }
     DLR_Color operator << (unsigned int shift) const { return {B << shift, G << shift, R << shift, A << shift}; }
 };
-
-static uint32_t DLR_Join(DLR_Color<uint8_t> c) {
-    return DLR_JoinARGB32(c.A, c.R, c.G, c.B);
-}
 
 #define DLR_AssertValidColor8888(C) \
     DLR_Assert(C.B >= 0 && C.B <= 255); \
@@ -428,7 +426,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     case DLR_BLENDMODE_NONE: {
                         const DLR_Color<uint8_t> nfinalC = (DLR_Color<uint8_t>) fincomingC;
                         DLR_AssertValidColor8888(nfinalC);
-                        DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(nfinalC));
+                        DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, nfinalC.ToARGB32());
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
@@ -446,7 +444,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
 
                         ndest = (DLR_Color<uint8_t>) fdest;
                         DLR_AssertValidColor8888(ndest);
-                        DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, DLR_Join(ndest));
+                        DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, ndest.ToARGB32());
 #else   // little-endian optimized
                         const uint32_t ndest_raw = DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
                         DLR_Color<uint8_t> ndest = *((DLR_Color<uint8_t> *)(& ndest_raw ));
