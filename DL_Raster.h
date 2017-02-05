@@ -253,14 +253,6 @@ struct DLR_Color {
         B = (argb      ) & 0xff;
     }
 
-    template <typename DLR_DestColorComponent>
-    explicit DLR_Color(DLR_Color<DLR_DestColorComponent> other) {
-        B = (DLR_ColorComponent) other.B;
-        G = (DLR_ColorComponent) other.G;
-        R = (DLR_ColorComponent) other.R;
-        A = (DLR_ColorComponent) other.A;
-    }
-
     explicit DLR_Color(DLR_Color<uint8_t> other) {
         B = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.B);
         G = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.G);
