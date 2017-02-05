@@ -232,63 +232,63 @@ inline DLR_Fixed DLR_ConvertColorComponentFromByte(uint8_t in) {
 
 template <typename DLR_ColorComponent>
 struct DLR_Color {
-    DLR_ColorComponent B;
-    DLR_ColorComponent G;
-    DLR_ColorComponent R;
-    DLR_ColorComponent A;
+    DLR_ColorComponent b;
+    DLR_ColorComponent g;
+    DLR_ColorComponent r;
+    DLR_ColorComponent a;
 
     DLR_Color() = default;
 
     DLR_Color(DLR_ColorComponent b_, DLR_ColorComponent g_, DLR_ColorComponent r_, DLR_ColorComponent a_) {
-        B = b_;
-        G = g_;
-        R = r_;
-        A = a_;
+        b = b_;
+        g = g_;
+        r = r_;
+        a = a_;
     }
 
     DLR_Color(uint32_t argb) {
-        A = (argb >> 24) & 0xff;
-        R = (argb >> 16) & 0xff;
-        G = (argb >>  8) & 0xff;
-        B = (argb      ) & 0xff;
+        a = (argb >> 24) & 0xff;
+        r = (argb >> 16) & 0xff;
+        g = (argb >>  8) & 0xff;
+        b = (argb      ) & 0xff;
     }
 
     explicit DLR_Color(DLR_Color<uint8_t> other) {
-        B = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.B);
-        G = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.G);
-        R = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.R);
-        A = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.A);
+        b = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.b);
+        g = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.g);
+        r = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.r);
+        a = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.a);
     }
 
     explicit operator DLR_Color<uint8_t>() const {
         return {
-            DLR_ConvertColorComponentToByte(B),
-            DLR_ConvertColorComponentToByte(G),
-            DLR_ConvertColorComponentToByte(R),
-            DLR_ConvertColorComponentToByte(A),
+            DLR_ConvertColorComponentToByte(b),
+            DLR_ConvertColorComponentToByte(g),
+            DLR_ConvertColorComponentToByte(r),
+            DLR_ConvertColorComponentToByte(a),
         };
     }
 
-    uint32_t ToARGB32() const { return DLR_JoinARGB32(A, R, G, B); }
+    uint32_t ToARGB32() const { return DLR_JoinARGB32(a, r, g, b); }
 
-    DLR_Color operator + (DLR_Color other) const { return {B + other.B, G + other.G, R + other.R, A + other.A}; }
-    DLR_Color operator * (DLR_Color other) const { return {B * other.B, G * other.G, R * other.R, A * other.A}; }
+    DLR_Color operator + (DLR_Color other) const { return {b + other.b, g + other.g, r + other.r, a + other.a}; }
+    DLR_Color operator * (DLR_Color other) const { return {b * other.b, g * other.g, r * other.r, a * other.a}; }
 
-    template <typename DLR_Coefficient>
-    DLR_Color operator * (DLR_Coefficient coeff) const { return {B * coeff, G * coeff, R * coeff, A * coeff}; }
+    template <typename DLr_Coefficient>
+    DLR_Color operator * (DLr_Coefficient coeff) const { return {b * coeff, g * coeff, r * coeff, a * coeff}; }
 
-    template <typename DLR_Coefficient>
-    DLR_Color operator / (DLR_Coefficient coeff) const { return {B / coeff, G / coeff, R / coeff, A / coeff}; }
+    template <typename DLr_Coefficient>
+    DLR_Color operator / (DLr_Coefficient coeff) const { return {b / coeff, g / coeff, r / coeff, a / coeff}; }
 
-    DLR_Color operator >> (unsigned int shift) const { return {B >> shift, G >> shift, R >> shift, A >> shift}; }
-    DLR_Color operator << (unsigned int shift) const { return {B << shift, G << shift, R << shift, A << shift}; }
+    DLR_Color operator >> (unsigned int shift) const { return {b >> shift, g >> shift, r >> shift, a >> shift}; }
+    DLR_Color operator << (unsigned int shift) const { return {b << shift, g << shift, r << shift, a << shift}; }
 };
 
 #define DLR_AssertValidColor8888(C) \
-    DLR_Assert(C.B >= 0 && C.B <= 255); \
-    DLR_Assert(C.G >= 0 && C.G <= 255); \
-    DLR_Assert(C.R >= 0 && C.R <= 255); \
-    DLR_Assert(C.A >= 0 && C.A <= 255);
+    DLR_Assert(C.b >= 0 && C.b <= 255); \
+    DLR_Assert(C.g >= 0 && C.g <= 255); \
+    DLR_Assert(C.r >= 0 && C.r <= 255); \
+    DLR_Assert(C.a >= 0 && C.a <= 255);
 
 template <typename DLR_Number, typename DLR_Vertex>
 DLR_Color<DLR_Number> & DLR_VertexColor(DLR_Vertex & v) {
@@ -435,12 +435,12 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                         DLR_Color<DLR_Number> fdest = (DLR_Color<DLR_Number>) ndest;
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-                        fdest.R = (fincomingC.R * fincomingC.A) + (fdest.R * ((DLR_Number)1 - fincomingC.A));
-                        fdest.G = (fincomingC.G * fincomingC.A) + (fdest.G * ((DLR_Number)1 - fincomingC.A));
-                        fdest.B = (fincomingC.B * fincomingC.A) + (fdest.B * ((DLR_Number)1 - fincomingC.A));
+                        fdest.r = (fincomingC.r * fincomingC.a) + (fdest.r * ((DLR_Number)1 - fincomingC.a));
+                        fdest.g = (fincomingC.g * fincomingC.a) + (fdest.g * ((DLR_Number)1 - fincomingC.a));
+                        fdest.b = (fincomingC.b * fincomingC.a) + (fdest.b * ((DLR_Number)1 - fincomingC.a));
 
                         // dstA = srcA + (dstA * (1-srcA))
-                        fdest.A = fincomingC.A + (fdest.A * ((DLR_Number)1 - fincomingC.A));
+                        fdest.a = fincomingC.a + (fdest.a * ((DLR_Number)1 - fincomingC.a));
 
                         ndest = (DLR_Color<uint8_t>) fdest;
                         DLR_AssertValidColor8888(ndest);
@@ -450,26 +450,26 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                         DLR_Color<uint8_t> ndest = *((DLR_Color<uint8_t> *)(& ndest_raw ));
 
                         DLR_Color<DLR_Number> fdest = {
-                            DLR_Fixed::FromRaw(((int32_t)ndest.A) << (DLR_Fixed::Precision - 8)),
-                            DLR_Fixed::FromRaw(((int32_t)ndest.R) << (DLR_Fixed::Precision - 8)),
-                            DLR_Fixed::FromRaw(((int32_t)ndest.G) << (DLR_Fixed::Precision - 8)),
-                            DLR_Fixed::FromRaw(((int32_t)ndest.B) << (DLR_Fixed::Precision - 8)),
+                            DLR_Fixed::FromRaw(((int32_t)ndest.a) << (DLR_Fixed::Precision - 8)),
+                            DLR_Fixed::FromRaw(((int32_t)ndest.r) << (DLR_Fixed::Precision - 8)),
+                            DLR_Fixed::FromRaw(((int32_t)ndest.g) << (DLR_Fixed::Precision - 8)),
+                            DLR_Fixed::FromRaw(((int32_t)ndest.b) << (DLR_Fixed::Precision - 8)),
                         };
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-                        fdest.R = (fincomingC.R * fincomingC.A) + (fdest.R * ((DLR_Number)1 - fincomingC.A));
-                        fdest.G = (fincomingC.G * fincomingC.A) + (fdest.G * ((DLR_Number)1 - fincomingC.A));
-                        fdest.B = (fincomingC.B * fincomingC.A) + (fdest.B * ((DLR_Number)1 - fincomingC.A));
+                        fdest.r = (fincomingC.r * fincomingC.a) + (fdest.r * ((DLR_Number)1 - fincomingC.a));
+                        fdest.g = (fincomingC.g * fincomingC.a) + (fdest.g * ((DLR_Number)1 - fincomingC.a));
+                        fdest.b = (fincomingC.b * fincomingC.a) + (fdest.b * ((DLR_Number)1 - fincomingC.a));
 
                         // dstA = srcA + (dstA * (1-srcA))
-                        fdest.A = fincomingC.A + (fdest.A * ((DLR_Number)1 - fincomingC.A));
+                        fdest.a = fincomingC.a + (fdest.a * ((DLR_Number)1 - fincomingC.a));
 
                         //ndest = (DLR_Color<uint8_t>) fdest;
                         ndest = {
-                            (uint8_t)((fdest.B.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-                            (uint8_t)((fdest.G.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-                            (uint8_t)((fdest.R.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
-                            (uint8_t)((fdest.A.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+                            (uint8_t)((fdest.b.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+                            (uint8_t)((fdest.g.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+                            (uint8_t)((fdest.r.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
+                            (uint8_t)((fdest.a.data >> (DLR_Fixed::Precision - 8)) + ((DLR_Fixed)0.5f).data),
                         };
 
                         //DLR_AssertValidColor8888(ndest);
