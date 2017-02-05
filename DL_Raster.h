@@ -239,6 +239,8 @@ struct DLR_Color {
         A = (DLR_ColorComponent) other.A;
     }
 
+    explicit DLR_Color(DLR_Color<uint8_t> other);
+
     DLR_Color operator + (DLR_Color other) const { return {B + other.B, G + other.G, R + other.R, A + other.A}; }
     DLR_Color operator * (DLR_Color other) const { return {B * other.B, G * other.G, R * other.R, A * other.A}; }
 
@@ -322,14 +324,13 @@ inline DLR_Fixed DLR_ConvertColorComponentFromByte(uint8_t in) {
     return DLR_Fixed::FromRaw(((int32_t)in) << (DLR_Fixed::Precision - 8));
 }
 
-template <typename DLR_Number>
-inline DLR_Color<DLR_Number> DLR_ConvertColorFromBytes(const DLR_Color<uint8_t> & in) {
-    return {
-        DLR_ConvertColorComponentFromByte<DLR_Number>(in.B),
-        DLR_ConvertColorComponentFromByte<DLR_Number>(in.G),
-        DLR_ConvertColorComponentFromByte<DLR_Number>(in.R),
-        DLR_ConvertColorComponentFromByte<DLR_Number>(in.A),        
-    };
+template <typename DLR_ColorComponent>
+DLR_Color<DLR_ColorComponent>::DLR_Color(DLR_Color<uint8_t> other)
+{
+    B = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.B);
+    G = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.G);
+    R = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.R);
+    A = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.A);
 }
 
 template <typename DLR_Number, typename DLR_Vertex, typename DLR_NumberBig>
@@ -427,7 +428,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     DLR_Assert(ntexX >= 0 && ntexX < state->texture.w);
                     DLR_Assert(ntexY >= 0 && ntexY < state->texture.h);
                     ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
-                    ftexC = DLR_ConvertColorFromBytes<DLR_Number>(ntexC);
+                    ftexC = (DLR_Color<DLR_Number>) ntexC;
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
                         fincomingC = ftexC * fincomingC;
                     } else {
@@ -446,7 +447,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     case DLR_BLENDMODE_BLEND: {
 #if 1   // original
                         DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
-                        DLR_Color<DLR_Number> fdest = DLR_ConvertColorFromBytes<DLR_Number>(ndest);
+                        DLR_Color<DLR_Number> fdest = (DLR_Color<DLR_Number>) ndest;
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
                         fdest.R = (fincomingC.R * fincomingC.A) + (fdest.R * ((DLR_Number)1 - fincomingC.A));
