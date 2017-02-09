@@ -257,6 +257,7 @@ struct DLR_Color {
         b = (argb      ) & 0xff;
     }
 
+#if 0	// the following does not work with MSVC 2015, so we'll have and use DLR_ConvertColor instead
     explicit DLR_Color(DLR_Color<uint8_t> other) {
         b = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.b);
         g = DLR_ConvertColorComponentFromByte<DLR_ColorComponent>(other.g);
@@ -272,6 +273,7 @@ struct DLR_Color {
             DLR_ConvertColorComponentToByte(a),
         };
     }
+#endif
 
     uint32_t ToARGB32() const { return DLR_JoinARGB32(a, r, g, b); }
 
@@ -287,6 +289,29 @@ struct DLR_Color {
     DLR_Color operator >> (unsigned int shift) const { return {b >> shift, g >> shift, r >> shift, a >> shift}; }
     DLR_Color operator << (unsigned int shift) const { return {b << shift, g << shift, r << shift, a << shift}; }
 };
+
+template <typename DLR_DestColorComponent, typename DLR_SrcColorComponent>
+static inline DLR_Color<DLR_DestColorComponent> DLR_ConvertColor(DLR_Color<DLR_SrcColorComponent> src);
+
+template <>
+static inline DLR_Color<DLR_Fixed> DLR_ConvertColor(DLR_Color<uint8_t> src) {
+	return {
+		DLR_ConvertColorComponentFromByte<DLR_Fixed>(src.b),
+		DLR_ConvertColorComponentFromByte<DLR_Fixed>(src.g),
+		DLR_ConvertColorComponentFromByte<DLR_Fixed>(src.r),
+		DLR_ConvertColorComponentFromByte<DLR_Fixed>(src.a),
+	};
+}
+
+template <>
+static inline DLR_Color<uint8_t> DLR_ConvertColor(DLR_Color<DLR_Fixed> src) {
+	return {
+		DLR_ConvertColorComponentToByte(src.b),
+		DLR_ConvertColorComponentToByte(src.g),
+		DLR_ConvertColorComponentToByte(src.r),
+		DLR_ConvertColorComponentToByte(src.a),
+	};
+}
 
 #define DLR_AssertValidColor8888(C) \
     DLR_Assert(C.b >= 0 && C.b <= 255); \
@@ -417,7 +442,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                     DLR_Assert(ntexX >= 0 && ntexX < state->texture.w);
                     DLR_Assert(ntexY >= 0 && ntexY < state->texture.h);
                     ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
-                    ftexC = (DLR_Color<DLR_Number>) ntexC;
+					ftexC = DLR_ConvertColor<DLR_Number, uint8_t>(ntexC);
                     if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
                         fincomingC = ftexC * fincomingC;
                     } else {
@@ -428,14 +453,14 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                 // color is ARGB
                 switch (state->blendMode) {
                     case DLR_BLENDMODE_NONE: {
-                        const DLR_Color<uint8_t> nfinalC = (DLR_Color<uint8_t>) fincomingC;
+						const DLR_Color<uint8_t> nfinalC = DLR_ConvertColor<uint8_t, DLR_Number>(fincomingC);
                         DLR_AssertValidColor8888(nfinalC);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, nfinalC.ToARGB32());
                     } break;
 
                     case DLR_BLENDMODE_BLEND: {
                         DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
-                        DLR_Color<DLR_Number> fdest = (DLR_Color<DLR_Number>) ndest;
+						DLR_Color<DLR_Number> fdest = DLR_ConvertColor<DLR_Number, uint8_t>(ndest);
 
                         // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
                         fdest.r = (fincomingC.r * fincomingC.a) + (fdest.r * ((DLR_Number)1 - fincomingC.a));
@@ -445,7 +470,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
                         // dstA = srcA + (dstA * (1-srcA))
                         fdest.a = fincomingC.a + (fdest.a * ((DLR_Number)1 - fincomingC.a));
 
-                        ndest = (DLR_Color<uint8_t>) fdest;
+						ndest = DLR_ConvertColor<uint8_t, DLR_Number>(fdest);
                         DLR_AssertValidColor8888(ndest);
                         DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, ndest.ToARGB32());
                     } break;

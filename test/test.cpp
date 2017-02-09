@@ -1667,7 +1667,7 @@ int main(int argc, char ** argv) {
             if ((i + 1) < argc) {
                 int j;
                 for (j = 0; j < SDL_arraysize(allScenes); ++j) {
-                    if (strcasecmp(argv[i+1], allScenes[j].name) == 0) {
+                    if (SDL_strcasecmp(argv[i+1], allScenes[j].name) == 0) {
                         scene = &allScenes[j];
                         break;
                     }
