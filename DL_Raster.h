@@ -294,7 +294,7 @@ template <typename DLR_DestColorComponent, typename DLR_SrcColorComponent>
 static inline DLR_Color<DLR_DestColorComponent> DLR_ConvertColor(DLR_Color<DLR_SrcColorComponent> src);
 
 template <>
-static inline DLR_Color<DLR_Fixed> DLR_ConvertColor(DLR_Color<uint8_t> src) {
+inline DLR_Color<DLR_Fixed> DLR_ConvertColor(DLR_Color<uint8_t> src) {
 	return {
 		DLR_ConvertColorComponentFromByte<DLR_Fixed>(src.b),
 		DLR_ConvertColorComponentFromByte<DLR_Fixed>(src.g),
@@ -304,7 +304,7 @@ static inline DLR_Color<DLR_Fixed> DLR_ConvertColor(DLR_Color<uint8_t> src) {
 }
 
 template <>
-static inline DLR_Color<uint8_t> DLR_ConvertColor(DLR_Color<DLR_Fixed> src) {
+inline DLR_Color<uint8_t> DLR_ConvertColor(DLR_Color<DLR_Fixed> src) {
 	return {
 		DLR_ConvertColorComponentToByte(src.b),
 		DLR_ConvertColorComponentToByte(src.g),
