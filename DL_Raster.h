@@ -27,8 +27,6 @@
 
 #define DLR_FIXED_PRECISION 14
 
-#define DLR_abs(A) (((A) > 0) ? (A) : -(A))
-
 template <typename DLR_Integer, int DLR_Precision, typename DLR_IntegerBig>
 struct DLR_FixedT {
     DLR_Integer data;
@@ -51,13 +49,12 @@ struct DLR_FixedT {
     template <typename DLR_IntegerSrc, int DLR_PrecisionSrc, typename DLR_IntegerBigSrc>
     explicit DLR_FixedT(DLR_FixedT<DLR_IntegerSrc, DLR_PrecisionSrc, DLR_IntegerBigSrc> src) {
         if (DLR_PrecisionSrc < DLR_Precision) {
-            data = ((DLR_Integer)src.data) << DLR_abs(DLR_PrecisionSrc - DLR_Precision);
+            data = ((DLR_Integer)src.data) << (DLR_Precision - DLR_PrecisionSrc);
         } else if (DLR_PrecisionSrc > DLR_Precision) {
-            data = (DLR_Integer)(src.data >> DLR_abs(DLR_Precision - DLR_PrecisionSrc));
+            data = (DLR_Integer)(src.data >> (DLR_PrecisionSrc - DLR_Precision));
         } else {
             data = (DLR_Integer)src.data;
         }
-        // bit-shifts are getting wrapped in DLR_abs() in order to prevent compiler warnings regarding negative shifts
     }
 
     inline DLR_FixedT operator+(DLR_FixedT b) const { return FromRaw(data + b.data); }
