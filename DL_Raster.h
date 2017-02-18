@@ -329,19 +329,19 @@ const DLR_Color<DLR_Number> & DLR_VertexColor(const DLR_Vertex & v) {
 template <typename DLR_Number>
 static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Number edgeX, DLR_Number edgeY)
 {
-    if (barycentric < (DLR_Number)0) {
-        return false;
-    } else if (barycentric == (DLR_Number)0) {
-        if (edgeY == (DLR_Number)0 && edgeX > (DLR_Number)0) {
-            return true;
-        } else if (edgeY < (DLR_Number)0) {
-            return true;
-        } else {
-            return false;
-        }
-    } else {
+    if (barycentric > (DLR_Number)0) {
         return true;
     }
+    if (barycentric < (DLR_Number)0) {
+        return false;
+    }
+    if (edgeY == (DLR_Number)0 && edgeX > (DLR_Number)0) {
+        return true;
+    }
+    if (edgeY < (DLR_Number)0) {
+        return true;
+    }
+    return false;
 }
 
 template <typename DLR_Number, typename DLR_Vertex>
