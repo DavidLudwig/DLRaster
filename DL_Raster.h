@@ -455,7 +455,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
 
     // Use the center of the pixel, to determine whether to rasterize
     const DLR_Number xy_offset = (DLR_Number)0.5f;
-    DLR_Point<DLR_Number> p = {(DLR_Number)xmin + xy_offset, (DLR_Number)ymin + xy_offset};
+    const DLR_Point<DLR_Number> p = {(DLR_Number)xmin + xy_offset, (DLR_Number)ymin + xy_offset};
 
     // Precompute a common part of the triangle's barycentric coordinates,
     // in a form that won't require division later-on.
