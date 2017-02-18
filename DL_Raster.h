@@ -477,14 +477,10 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
         lambda2 = lambda2_row;
 
         for (int x = xmin; x <= xmax; ++x) {
-            DLR_Point<DLR_Number> edge0 = {v2.x-v1.x, v2.y-v1.y}; // v2 - v1
-            DLR_Point<DLR_Number> edge1 = {v0.x-v2.x, v0.y-v2.y}; // v0 - v2
-            DLR_Point<DLR_Number> edge2 = {v1.x-v0.x, v1.y-v0.y}; // v1 - v0
-            bool overlaps = true;
-            overlaps &= DLR_WithinEdgeAreaClockwise(lambda0, edge0.x, edge0.y);
-            overlaps &= DLR_WithinEdgeAreaClockwise(lambda1, edge1.x, edge1.y);
-            overlaps &= DLR_WithinEdgeAreaClockwise(lambda2, edge2.x, edge2.y);
-            if (overlaps) {
+            if (DLR_WithinEdgeAreaClockwise(lambda0, v2.x - v1.x, v2.y - v1.y) &&
+                DLR_WithinEdgeAreaClockwise(lambda1, v0.x - v2.x, v0.y - v2.y) &&
+                DLR_WithinEdgeAreaClockwise(lambda2, v1.x - v0.x, v1.y - v0.y))
+            {
                 DLR_PixelShade_Generic
                 // DLR_PixelShade_White
                 (
