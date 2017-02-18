@@ -464,12 +464,12 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
     DLR_Number lambda0_row = (DLR_Number)(((DLR_NumberBig) (((v1.y - v2.y) * ( p.x - v2.x) + (v2.x - v1.x) * ( p.y - v2.y)))) * barycentric_conversion_factor);
     DLR_Number lambda1_row = (DLR_Number)(((DLR_NumberBig) (((v2.y - v0.y) * ( p.x - v2.x) + (v0.x - v2.x) * ( p.y - v2.y)))) * barycentric_conversion_factor);
     DLR_Number lambda2_row = (DLR_Number)(((DLR_NumberBig) (((v0.y - v1.y) * ( p.x - v0.x) + (v1.x - v0.x) * ( p.y - v0.y)))) * barycentric_conversion_factor);
-    DLR_Number lambda0_xstep = (DLR_Number)((DLR_NumberBig)(v1.y - v2.y) * barycentric_conversion_factor);
-    DLR_Number lambda0_ystep = (DLR_Number)((DLR_NumberBig)(v2.x - v1.x) * barycentric_conversion_factor);
-    DLR_Number lambda1_xstep = (DLR_Number)((DLR_NumberBig)(v2.y - v0.y) * barycentric_conversion_factor);
-    DLR_Number lambda1_ystep = (DLR_Number)((DLR_NumberBig)(v0.x - v2.x) * barycentric_conversion_factor);
-    DLR_Number lambda2_xstep = (DLR_Number)((DLR_NumberBig)(v0.y - v1.y) * barycentric_conversion_factor);
-    DLR_Number lambda2_ystep = (DLR_Number)((DLR_NumberBig)(v1.x - v0.x) * barycentric_conversion_factor);
+    const DLR_Number lambda0_xstep = (DLR_Number)((DLR_NumberBig)(v1.y - v2.y) * barycentric_conversion_factor);
+    const DLR_Number lambda0_ystep = (DLR_Number)((DLR_NumberBig)(v2.x - v1.x) * barycentric_conversion_factor);
+    const DLR_Number lambda1_xstep = (DLR_Number)((DLR_NumberBig)(v2.y - v0.y) * barycentric_conversion_factor);
+    const DLR_Number lambda1_ystep = (DLR_Number)((DLR_NumberBig)(v0.x - v2.x) * barycentric_conversion_factor);
+    const DLR_Number lambda2_xstep = (DLR_Number)((DLR_NumberBig)(v0.y - v1.y) * barycentric_conversion_factor);
+    const DLR_Number lambda2_ystep = (DLR_Number)((DLR_NumberBig)(v1.x - v0.x) * barycentric_conversion_factor);
 
     for (int y = ymin; y <= ymax; ++y) {
         lambda0 = lambda0_row;
