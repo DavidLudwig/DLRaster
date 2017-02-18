@@ -485,8 +485,8 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda1, edge1.x, edge1.y);
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda2, edge2.x, edge2.y);
             if (overlaps) {
-                // DLR_PixelShade_Generic
-                DLR_PixelShade_White
+                DLR_PixelShade_Generic
+                // DLR_PixelShade_White
                 (
                     v0,
                     v1,
