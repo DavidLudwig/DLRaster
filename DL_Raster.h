@@ -461,7 +461,7 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
     // in a form that won't require division later-on.
     const DLR_NumberBig barycentric_conversion_factor = ( (DLR_NumberBig)1 / (DLR_NumberBig)((v1.y - v2.y) * (v0.x - v2.x) + (v2.x - v1.x) * (v0.y - v2.y)));
 
-//#define DLR_USE_BCF 1
+#define DLR_USE_BCF 1
 #if DLR_USE_BCF
     DLR_Number lambda0_proto;
     DLR_Number lambda1_proto;
