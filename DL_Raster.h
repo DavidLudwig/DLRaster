@@ -321,11 +321,6 @@ const DLR_Color<DLR_Number> & DLR_VertexColor(const DLR_Vertex & v) {
     return * (DLR_Color<DLR_Number> *) &(v.b);
 }
 
-// template <typename DLR_Number, typename DLR_Vertex>
-// DLR_Number DLR_CalculateOrientation(DLR_Vertex b, DLR_Vertex c, DLR_Vertex p) {
-//     return (b.x - c.x) * (p.y - c.y) - (b.y - c.y) * (p.x - c.x);
-// }
-
 template <typename DLR_Number>
 static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Number edgeX, DLR_Number edgeY)
 {
