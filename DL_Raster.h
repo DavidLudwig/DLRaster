@@ -317,7 +317,7 @@ inline DLR_Color<uint8_t> DLR_ConvertColor(DLR_Color<DLR_Fixed> src) {
     DLR_Assert(C.a >= 0 && C.a <= 255);
 
 template <typename DLR_Number, typename DLR_Vertex>
-DLR_Color<DLR_Number> & DLR_VertexColor(DLR_Vertex & v) {
+const DLR_Color<DLR_Number> & DLR_VertexColor(const DLR_Vertex & v) {
     return * (DLR_Color<DLR_Number> *) &(v.b);
 }
 
@@ -342,6 +342,94 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
     } else {
         return true;
     }
+}
+
+template <typename DLR_Number, typename DLR_Vertex>
+static inline void DLR_PixelShade_Generic(
+    const DLR_Vertex & v0,
+    const DLR_Vertex & v1,
+    const DLR_Vertex & v2,
+    const DLR_Number lambda0,
+    const DLR_Number lambda1,
+    const DLR_Number lambda2,
+    const DLR_State * state,
+    const int x,
+    const int y
+)
+{
+    DLR_Color<DLR_Number> fincomingC = \
+        (DLR_VertexColor<DLR_Number, DLR_Vertex>(v0) * lambda0) +
+        (DLR_VertexColor<DLR_Number, DLR_Vertex>(v1) * lambda1) +
+        (DLR_VertexColor<DLR_Number, DLR_Vertex>(v2) * lambda2);
+
+    DLR_Number uv = (DLR_Number)0;
+    DLR_Number uw = (DLR_Number)0;
+    DLR_Number ftexX = (DLR_Number)0;
+    DLR_Number ftexY = (DLR_Number)0;
+    int ntexX = 0;
+    int ntexY = 0;
+    DLR_Color<uint8_t> ntexC = {0, 0, 0, 0};
+    DLR_Color<DLR_Number> ftexC = {(DLR_Number)0, (DLR_Number)0, (DLR_Number)0, (DLR_Number)0};
+    
+    if (state->texture.pixels) {
+        uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
+        uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
+        ftexX = (uv * (DLR_Number)(state->texture.w /* - 1*/));
+        ftexY = (uw * (DLR_Number)(state->texture.h /* - 1*/));
+        ntexX = DLR_Min((int)ftexX, state->texture.w - 1);
+        ntexY = DLR_Min((int)ftexY, state->texture.h - 1);
+        DLR_Assert(ntexX >= 0 && ntexX < state->texture.w);
+        DLR_Assert(ntexY >= 0 && ntexY < state->texture.h);
+        ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
+        ftexC = DLR_ConvertColor<DLR_Number, uint8_t>(ntexC);
+        if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
+            fincomingC = ftexC * fincomingC;
+        } else {
+            fincomingC = ftexC;
+        }
+    } // if tex ...
+
+    // color is ARGB
+    switch (state->blendMode) {
+        case DLR_BLENDMODE_NONE: {
+            const DLR_Color<uint8_t> nfinalC = DLR_ConvertColor<uint8_t, DLR_Number>(fincomingC);
+            DLR_AssertValidColor8888(nfinalC);
+            DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, nfinalC.ToARGB32());
+        } break;
+
+        case DLR_BLENDMODE_BLEND: {
+            DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
+            DLR_Color<DLR_Number> fdest = DLR_ConvertColor<DLR_Number, uint8_t>(ndest);
+
+            // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
+            fdest.r = (fincomingC.r * fincomingC.a) + (fdest.r * ((DLR_Number)1 - fincomingC.a));
+            fdest.g = (fincomingC.g * fincomingC.a) + (fdest.g * ((DLR_Number)1 - fincomingC.a));
+            fdest.b = (fincomingC.b * fincomingC.a) + (fdest.b * ((DLR_Number)1 - fincomingC.a));
+
+            // dstA = srcA + (dstA * (1-srcA))
+            fdest.a = fincomingC.a + (fdest.a * ((DLR_Number)1 - fincomingC.a));
+
+            ndest = DLR_ConvertColor<uint8_t, DLR_Number>(fdest);
+            DLR_AssertValidColor8888(ndest);
+            DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, ndest.ToARGB32());
+        } break;
+    } // switch (blendMode)
+}
+
+template <typename DLR_Number, typename DLR_Vertex>
+static inline void DLR_PixelShade_White(
+    const DLR_Vertex & v0,
+    const DLR_Vertex & v1,
+    const DLR_Vertex & v2,
+    const DLR_Number lambda0,
+    const DLR_Number lambda1,
+    const DLR_Number lambda2,
+    const DLR_State * state,
+    const int x,
+    const int y
+)
+{
+    DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, 0xffffffff);
 }
 
 template <typename DLR_Number, typename DLR_Vertex, typename DLR_NumberBig>
@@ -433,64 +521,9 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda1, edge1.x, edge1.y);
             overlaps &= DLR_WithinEdgeAreaClockwise(lambda2, edge2.x, edge2.y);
             if (overlaps) {
-                DLR_Color<DLR_Number> fincomingC = \
-                    (DLR_VertexColor<DLR_Number, DLR_Vertex>(v0) * lambda0) +
-                    (DLR_VertexColor<DLR_Number, DLR_Vertex>(v1) * lambda1) +
-                    (DLR_VertexColor<DLR_Number, DLR_Vertex>(v2) * lambda2);
-
-                DLR_Number uv = (DLR_Number)0;
-                DLR_Number uw = (DLR_Number)0;
-                DLR_Number ftexX = (DLR_Number)0;
-                DLR_Number ftexY = (DLR_Number)0;
-                int ntexX = 0;
-                int ntexY = 0;
-                DLR_Color<uint8_t> ntexC = {0, 0, 0, 0};
-                DLR_Color<DLR_Number> ftexC = {(DLR_Number)0, (DLR_Number)0, (DLR_Number)0, (DLR_Number)0};
-                
-                if (state->texture.pixels) {
-                    uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
-                    uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
-                    ftexX = (uv * (DLR_Number)(state->texture.w /* - 1*/));
-                    ftexY = (uw * (DLR_Number)(state->texture.h /* - 1*/));
-                    ntexX = DLR_Min((int)ftexX, state->texture.w - 1);
-                    ntexY = DLR_Min((int)ftexY, state->texture.h - 1);
-                    DLR_Assert(ntexX >= 0 && ntexX < state->texture.w);
-                    DLR_Assert(ntexY >= 0 && ntexY < state->texture.h);
-                    ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
-					ftexC = DLR_ConvertColor<DLR_Number, uint8_t>(ntexC);
-                    if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
-                        fincomingC = ftexC * fincomingC;
-                    } else {
-                        fincomingC = ftexC;
-                    }
-                } // if tex ...
-
-                // color is ARGB
-                switch (state->blendMode) {
-                    case DLR_BLENDMODE_NONE: {
-						const DLR_Color<uint8_t> nfinalC = DLR_ConvertColor<uint8_t, DLR_Number>(fincomingC);
-                        DLR_AssertValidColor8888(nfinalC);
-                        DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, nfinalC.ToARGB32());
-                    } break;
-
-                    case DLR_BLENDMODE_BLEND: {
-                        DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
-						DLR_Color<DLR_Number> fdest = DLR_ConvertColor<DLR_Number, uint8_t>(ndest);
-
-                        // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-                        fdest.r = (fincomingC.r * fincomingC.a) + (fdest.r * ((DLR_Number)1 - fincomingC.a));
-                        fdest.g = (fincomingC.g * fincomingC.a) + (fdest.g * ((DLR_Number)1 - fincomingC.a));
-                        fdest.b = (fincomingC.b * fincomingC.a) + (fdest.b * ((DLR_Number)1 - fincomingC.a));
-
-                        // dstA = srcA + (dstA * (1-srcA))
-                        fdest.a = fincomingC.a + (fdest.a * ((DLR_Number)1 - fincomingC.a));
-
-						ndest = DLR_ConvertColor<uint8_t, DLR_Number>(fdest);
-                        DLR_AssertValidColor8888(ndest);
-                        DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, ndest.ToARGB32());
-                    } break;
-                } // switch (blendMode)
-            } // if (overlaps)
+                DLR_PixelShade_Generic(v0, v1, v2, lambda0, lambda1, lambda2, state, x, y);
+                // DLR_PixelShade_White(state, x, y, v0, v1, v2, lambda0, lambda1, lambda2);
+            }
 
 #if DLR_USE_BCF
             lambda0_proto += lambda0_xstep;
