@@ -374,26 +374,17 @@ static inline void DLR_PixelShade_Generic(
         (DLR_VertexColor<DLR_Number, DLR_Vertex>(v1) * lambda1) +
         (DLR_VertexColor<DLR_Number, DLR_Vertex>(v2) * lambda2);
 
-    DLR_Number uv = (DLR_Number)0;
-    DLR_Number uw = (DLR_Number)0;
-    DLR_Number ftexX = (DLR_Number)0;
-    DLR_Number ftexY = (DLR_Number)0;
-    int ntexX = 0;
-    int ntexY = 0;
-    DLR_Color<uint8_t> ntexC = {0, 0, 0, 0};
-    DLR_Color<DLR_Number> ftexC = {(DLR_Number)0, (DLR_Number)0, (DLR_Number)0, (DLR_Number)0};
-    
     if (state->texture.pixels) {
-        uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
-        uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
-        ftexX = (uv * (DLR_Number)(state->texture.w /* - 1*/));
-        ftexY = (uw * (DLR_Number)(state->texture.h /* - 1*/));
-        ntexX = DLR_Min((int)ftexX, state->texture.w - 1);
-        ntexY = DLR_Min((int)ftexY, state->texture.h - 1);
+        const DLR_Number uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
+        const DLR_Number uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
+        const DLR_Number ftexX = (uv * (DLR_Number)(state->texture.w /* - 1*/));
+        const DLR_Number ftexY = (uw * (DLR_Number)(state->texture.h /* - 1*/));
+        const int ntexX = DLR_Min((int)ftexX, state->texture.w - 1);
+        const int ntexY = DLR_Min((int)ftexY, state->texture.h - 1);
         DLR_Assert(ntexX >= 0 && ntexX < state->texture.w);
         DLR_Assert(ntexY >= 0 && ntexY < state->texture.h);
-        ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
-        ftexC = DLR_ConvertColor<DLR_Number, uint8_t>(ntexC);
+        const DLR_Color<uint8_t> ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
+        DLR_Color<DLR_Number> ftexC = DLR_ConvertColor<DLR_Number, uint8_t>(ntexC);
         if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
             fincomingC = ftexC * fincomingC;
         } else {
