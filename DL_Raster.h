@@ -98,8 +98,8 @@ typedef double DLR_Float;       // huh, double can be faster than float, at leas
 
 template <typename DLR_Number>
 struct DLR_Point {
-    DLR_Fixed x;
-    DLR_Fixed y;
+    DLR_Number x;
+    DLR_Number y;
 };
 
 typedef struct DLR_VertexX {
@@ -313,6 +313,26 @@ inline DLR_Color<uint8_t> DLR_ConvertColor(DLR_Color<DLR_Fixed> src) {
 		DLR_ConvertColorComponentToByte(src.r),
 		DLR_ConvertColorComponentToByte(src.a),
 	};
+}
+
+template <>
+inline DLR_Color<double> DLR_ConvertColor(DLR_Color<uint8_t> src) {
+    return {
+        DLR_ConvertColorComponentFromByte<double>(src.b),
+        DLR_ConvertColorComponentFromByte<double>(src.g),
+        DLR_ConvertColorComponentFromByte<double>(src.r),
+        DLR_ConvertColorComponentFromByte<double>(src.a),
+    };
+}
+
+template <>
+inline DLR_Color<uint8_t> DLR_ConvertColor(DLR_Color<double> src) {
+    return {
+        DLR_ConvertColorComponentToByte(src.b),
+        DLR_ConvertColorComponentToByte(src.g),
+        DLR_ConvertColorComponentToByte(src.r),
+        DLR_ConvertColorComponentToByte(src.a),
+    };
 }
 
 #define DLR_AssertValidColor8888(C) \
