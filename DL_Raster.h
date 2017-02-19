@@ -202,9 +202,14 @@ DLR_EXTERN_C void DLR_Clear(
     DLR_State * state,
     uint32_t color)
 {
-    for (int y = 0; y < state->dest.h; ++y) {
-        for (int x = 0; x <= (state->dest.pitch - 4); x += 4) {
-            *((uint32_t *)(((uint8_t *)state->dest.pixels) + (y * state->dest.pitch) + x)) = color;
+    const int ymax = state->dest.h;
+    const int xmax = (state->dest.pitch - 4);
+    const uint8_t * pixels = (uint8_t *) state->dest.pixels;
+    const int pitch = state->dest.pitch;
+    int y, x;
+    for (y = 0; y < ymax; ++y) {
+        for (x = 0; x <= xmax; x += 4) {
+            *((uint32_t *)(pixels + (y * pitch) + x)) = color;
         }
     }
 }
