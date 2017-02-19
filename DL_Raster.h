@@ -426,23 +426,23 @@ static inline void DLR_PixelShade_White(
 
 template <typename DLR_Number, typename DLR_Vertex>
 void DLR_DrawTriangleT_Loop(
-    int xmin,
-    int xmax,
-    int ymin,
-    int ymax,
+    const int xmin,
+    const int xmax,
+    const int ymin,
+    const int ymax,
     const DLR_Vertex & v0,
     const DLR_Vertex & v1,
     const DLR_Vertex & v2,
     DLR_Number lambda0_row,
     DLR_Number lambda1_row,
     DLR_Number lambda2_row,
-    DLR_Number lambda0_xstep,
-    DLR_Number lambda1_xstep,
-    DLR_Number lambda2_xstep,
-    DLR_Number lambda0_ystep,
-    DLR_Number lambda1_ystep,
-    DLR_Number lambda2_ystep,
-    DLR_State * state
+    const DLR_Number lambda0_xstep,
+    const DLR_Number lambda1_xstep,
+    const DLR_Number lambda2_xstep,
+    const DLR_Number lambda0_ystep,
+    const DLR_Number lambda1_ystep,
+    const DLR_Number lambda2_ystep,
+    const DLR_State * const state
 )
 {
     int y, x;
@@ -492,7 +492,7 @@ void DLR_DrawTriangleT_Loop(
 }
 
 template <typename DLR_Number, typename DLR_Vertex, typename DLR_NumberBig>
-void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
+void DLR_DrawTriangleT(const DLR_State * const state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
 {
     // TODO: consider adding +1 to *max vars, to prevent clipping.  This'll depend on how we determine if a pixel is lit.
     int ymin = (int)(DLR_Min(v0.y, DLR_Min(v1.y, v2.y)));
