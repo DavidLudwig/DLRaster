@@ -448,15 +448,22 @@ void DLR_DrawTriangleT_Loop(
     int y, x;
     DLR_Number lambda0, lambda1, lambda2;
 
+    const DLR_Number edge0X = v2.x - v1.x;
+    const DLR_Number edge0Y = v2.y - v1.y;
+    const DLR_Number edge1X = v0.x - v2.x;
+    const DLR_Number edge1Y = v0.y - v2.y;
+    const DLR_Number edge2X = v1.x - v0.x;
+    const DLR_Number edge2Y = v1.y - v0.y;
+
     for (y = ymin; y <= ymax; ++y) {
         lambda0 = lambda0_row;
         lambda1 = lambda1_row;
         lambda2 = lambda2_row;
 
         for (x = xmin; x <= xmax; ++x) {
-            if (DLR_WithinEdgeAreaClockwise(lambda0, v2.x - v1.x, v2.y - v1.y) &&
-                DLR_WithinEdgeAreaClockwise(lambda1, v0.x - v2.x, v0.y - v2.y) &&
-                DLR_WithinEdgeAreaClockwise(lambda2, v1.x - v0.x, v1.y - v0.y))
+            if (DLR_WithinEdgeAreaClockwise(lambda0, edge0X, edge0Y) &&
+                DLR_WithinEdgeAreaClockwise(lambda1, edge1X, edge1Y) &&
+                DLR_WithinEdgeAreaClockwise(lambda2, edge2X, edge2Y))
             {
                 DLR_PixelShade_Generic
                 // DLR_PixelShade_White
