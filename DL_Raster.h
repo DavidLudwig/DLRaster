@@ -323,7 +323,7 @@ inline DLR_Color<uint8_t> DLR_ConvertColor(DLR_Color<DLR_Fixed> src) {
 
 template <typename DLR_Number, typename DLR_Vertex>
 const DLR_Color<DLR_Number> & DLR_VertexColor(const DLR_Vertex & v) {
-    return * (DLR_Color<DLR_Number> *) &(v.b);
+    return * (const DLR_Color<DLR_Number> * const) &(v.b);
 }
 
 template <typename DLR_Number>
@@ -344,7 +344,7 @@ static inline void DLR_PixelShade_Generic(
     const DLR_Number lambda0,
     const DLR_Number lambda1,
     const DLR_Number lambda2,
-    const DLR_State * state,
+    const DLR_State * const state,
     const int x,
     const int y
 )
