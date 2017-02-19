@@ -1138,12 +1138,20 @@ void DLR_Test_ProcessEvent(const SDL_Event & e)
         } break;
 
         case SDL_KEYDOWN: {
+            if (e.key.keysym.mod & KMOD_CTRL) {
+                switch (e.key.keysym.sym) {
+                    case SDLK_c: {
+                        exit(0);
+                    } break;
+                }
+            }
+
             switch (e.key.keysym.sym) {
                 case SDLK_q:
                 case SDLK_ESCAPE: {
                     exit(0);
                 } break;
-                
+
                 case SDLK_RIGHT: if (DLRTEST_IS_LOCKED()) { lockedX = SDL_min(lockedX + 1, winW - 1); DLRTest_UpdateWindowTitles(); } break;
                 case SDLK_LEFT:  if (DLRTEST_IS_LOCKED()) { lockedX = SDL_max(lockedX - 1,        0); DLRTest_UpdateWindowTitles(); } break;
                 case SDLK_DOWN:  if (DLRTEST_IS_LOCKED()) { lockedY = SDL_min(lockedY + 1, winH - 1); DLRTest_UpdateWindowTitles(); } break;
