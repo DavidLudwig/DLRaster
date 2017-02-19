@@ -419,6 +419,66 @@ static inline void DLR_PixelShade_White(
     DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, 0xffffffff);
 }
 
+template <typename DLR_Number, typename DLR_Vertex>
+void DLR_DrawTriangleT_Loop(
+    int xmin,
+    int xmax,
+    int ymin,
+    int ymax,
+    const DLR_Vertex & v0,
+    const DLR_Vertex & v1,
+    const DLR_Vertex & v2,
+    DLR_Number lambda0_row,
+    DLR_Number lambda1_row,
+    DLR_Number lambda2_row,
+    DLR_Number lambda0_xstep,
+    DLR_Number lambda1_xstep,
+    DLR_Number lambda2_xstep,
+    DLR_Number lambda0_ystep,
+    DLR_Number lambda1_ystep,
+    DLR_Number lambda2_ystep,
+    DLR_State * state
+)
+{
+    int y, x;
+    DLR_Number lambda0, lambda1, lambda2;
+
+    for (y = ymin; y <= ymax; ++y) {
+        lambda0 = lambda0_row;
+        lambda1 = lambda1_row;
+        lambda2 = lambda2_row;
+
+        for (x = xmin; x <= xmax; ++x) {
+            if (DLR_WithinEdgeAreaClockwise(lambda0, v2.x - v1.x, v2.y - v1.y) &&
+                DLR_WithinEdgeAreaClockwise(lambda1, v0.x - v2.x, v0.y - v2.y) &&
+                DLR_WithinEdgeAreaClockwise(lambda2, v1.x - v0.x, v1.y - v0.y))
+            {
+                DLR_PixelShade_Generic
+                // DLR_PixelShade_White
+                (
+                    v0,
+                    v1,
+                    v2,
+                    lambda0,
+                    lambda1,
+                    lambda2,
+                    state,
+                    x,
+                    y
+                );
+            }
+
+            lambda0 += lambda0_xstep;
+            lambda1 += lambda1_xstep;
+            lambda2 += lambda2_xstep;
+        } // for X
+
+        lambda0_row += lambda0_ystep;
+        lambda1_row += lambda1_ystep;
+        lambda2_row += lambda2_ystep;
+    } // for Y
+}
+
 template <typename DLR_Number, typename DLR_Vertex, typename DLR_NumberBig>
 void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vertex v2)
 {
@@ -458,40 +518,25 @@ void DLR_DrawTriangleT(DLR_State * state, DLR_Vertex v0, DLR_Vertex v1, DLR_Vert
     const DLR_Number lambda2_xstep = (DLR_Number)((DLR_NumberBig)(v0.y - v1.y) * barycentric_conversion_factor);
     const DLR_Number lambda2_ystep = (DLR_Number)((DLR_NumberBig)(v1.x - v0.x) * barycentric_conversion_factor);
 
-    for (int y = ymin; y <= ymax; ++y) {
-        lambda0 = lambda0_row;
-        lambda1 = lambda1_row;
-        lambda2 = lambda2_row;
-
-        for (int x = xmin; x <= xmax; ++x) {
-            if (DLR_WithinEdgeAreaClockwise(lambda0, v2.x - v1.x, v2.y - v1.y) &&
-                DLR_WithinEdgeAreaClockwise(lambda1, v0.x - v2.x, v0.y - v2.y) &&
-                DLR_WithinEdgeAreaClockwise(lambda2, v1.x - v0.x, v1.y - v0.y))
-            {
-                DLR_PixelShade_Generic
-                // DLR_PixelShade_White
-                (
-                    v0,
-                    v1,
-                    v2,
-                    lambda0,
-                    lambda1,
-                    lambda2,
-                    state,
-                    x,
-                    y
-                );
-            }
-
-            lambda0 += lambda0_xstep;
-            lambda1 += lambda1_xstep;
-            lambda2 += lambda2_xstep;
-        } // for X
-
-        lambda0_row += lambda0_ystep;
-        lambda1_row += lambda1_ystep;
-        lambda2_row += lambda2_ystep;
-    } // for Y
+    DLR_DrawTriangleT_Loop(
+        xmin,
+        xmax,
+        ymin,
+        ymax,
+        v0,
+        v1,
+        v2,
+        lambda0_row,
+        lambda1_row,
+        lambda2_row,
+        lambda0_xstep,
+        lambda1_xstep,
+        lambda2_xstep,
+        lambda0_ystep,
+        lambda1_ystep,
+        lambda2_ystep,
+        state
+    );
 }
 
 DLR_EXTERN_C void DLR_DrawTriangleX(DLR_State * state, DLR_VertexX v0, DLR_VertexX v1, DLR_VertexX v2)
