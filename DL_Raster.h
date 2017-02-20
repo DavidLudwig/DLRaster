@@ -335,12 +335,6 @@ inline DLR_Color<uint8_t> DLR_ConvertColor(DLR_Color<double> src) {
     };
 }
 
-#define DLR_AssertValidColor8888(C) \
-    DLR_Assert(C.b >= 0 && C.b <= 255); \
-    DLR_Assert(C.g >= 0 && C.g <= 255); \
-    DLR_Assert(C.r >= 0 && C.r <= 255); \
-    DLR_Assert(C.a >= 0 && C.a <= 255);
-
 template <typename DLR_Number, typename DLR_Vertex>
 const DLR_Color<DLR_Number> & DLR_VertexColor(const DLR_Vertex & v) {
     return * (const DLR_Color<DLR_Number> * const) &(v.b);
@@ -396,7 +390,6 @@ static inline uint32_t DLR_PixelShade_Generic(
     switch (state->blendMode) {
         case DLR_BLENDMODE_NONE: {
             const DLR_Color<uint8_t> nfinalC = DLR_ConvertColor<uint8_t, DLR_Number>(fincomingC);
-            DLR_AssertValidColor8888(nfinalC);
             return nfinalC.ToARGB32();
         } break;
 
@@ -413,7 +406,6 @@ static inline uint32_t DLR_PixelShade_Generic(
             fdest.a = fincomingC.a + (fdest.a * ((DLR_Number)1 - fincomingC.a));
 
             ndest = DLR_ConvertColor<uint8_t, DLR_Number>(fdest);
-            DLR_AssertValidColor8888(ndest);
             return ndest.ToARGB32();
         } break;
     } // switch (blendMode)
