@@ -357,7 +357,7 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
 }
 
 template <typename DLR_Number, typename DLR_Vertex>
-static inline void DLR_PixelShade_Generic(
+static inline uint32_t DLR_PixelShade_Generic(
     const DLR_Vertex & v0,
     const DLR_Vertex & v1,
     const DLR_Vertex & v2,
@@ -397,7 +397,7 @@ static inline void DLR_PixelShade_Generic(
         case DLR_BLENDMODE_NONE: {
             const DLR_Color<uint8_t> nfinalC = DLR_ConvertColor<uint8_t, DLR_Number>(fincomingC);
             DLR_AssertValidColor8888(nfinalC);
-            DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, nfinalC.ToARGB32());
+            return nfinalC.ToARGB32();
         } break;
 
         case DLR_BLENDMODE_BLEND: {
@@ -414,13 +414,15 @@ static inline void DLR_PixelShade_Generic(
 
             ndest = DLR_ConvertColor<uint8_t, DLR_Number>(fdest);
             DLR_AssertValidColor8888(ndest);
-            DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, ndest.ToARGB32());
+            return ndest.ToARGB32();
         } break;
     } // switch (blendMode)
+
+    return 0;
 }
 
 template <typename DLR_Number, typename DLR_Vertex>
-static inline void DLR_PixelShade_White(
+static inline uint32_t DLR_PixelShade_White(
     const DLR_Vertex & v0,
     const DLR_Vertex & v1,
     const DLR_Vertex & v2,
@@ -432,7 +434,7 @@ static inline void DLR_PixelShade_White(
     const int y
 )
 {
-    DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, 0xffffffff);
+    return 0xffffffff;
 }
 
 template <typename DLR_Number, typename DLR_Vertex>
@@ -476,8 +478,9 @@ void DLR_DrawTriangleT_Loop(
                 DLR_WithinEdgeAreaClockwise(lambda1, edge1X, edge1Y) &&
                 DLR_WithinEdgeAreaClockwise(lambda2, edge2X, edge2Y))
             {
-                DLR_PixelShade_Generic
-                // DLR_PixelShade_White
+                const uint32_t rawColor = \
+                    DLR_PixelShade_Generic
+                    // DLR_PixelShade_White
                 (
                     v0,
                     v1,
@@ -489,6 +492,7 @@ void DLR_DrawTriangleT_Loop(
                     x,
                     y
                 );
+                DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, rawColor);
             }
 
             lambda0 += lambda0_xstep;
