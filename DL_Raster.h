@@ -140,10 +140,10 @@ typedef struct DLR_State {
     void * userData;
 } DLR_State;
 
-#define DLR_GetPixel32(PIXELS, PITCH, BYTESPP, X, Y) \
+#define DLR_ReadPixel32(PIXELS, PITCH, BYTESPP, X, Y) \
     (*(uint32_t *)((uint8_t *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP)))))
 
-#define DLR_SetPixel32(PIXELS, PITCH, BYTESPP, X, Y, COLOR) \
+#define DLR_WritePixel32(PIXELS, PITCH, BYTESPP, X, Y, COLOR) \
     (*(uint32_t *)((uint8_t *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP))))) = (COLOR)
 
 #define DLR_SplitARGB32(SRC, A, R, G, B) \
@@ -383,7 +383,7 @@ static inline uint32_t DLR_PixelShade_Generic(
         const int ntexY = DLR_Min((int)ftexY, state->texture.h - 1);
         DLR_Assert(ntexX >= 0 && ntexX < state->texture.w);
         DLR_Assert(ntexY >= 0 && ntexY < state->texture.h);
-        const DLR_Color<uint8_t> ntexC = DLR_GetPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
+        const DLR_Color<uint8_t> ntexC = DLR_ReadPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
         DLR_Color<DLR_Number> ftexC = DLR_ConvertColor<DLR_Number, uint8_t>(ntexC);
         if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
             fincomingC = ftexC * fincomingC;
@@ -401,7 +401,7 @@ static inline uint32_t DLR_PixelShade_Generic(
         } break;
 
         case DLR_BLENDMODE_BLEND: {
-            DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_GetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
+            DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_ReadPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
             DLR_Color<DLR_Number> fdest = DLR_ConvertColor<DLR_Number, uint8_t>(ndest);
 
             // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
@@ -492,7 +492,7 @@ void DLR_DrawTriangleT_Loop(
                     x,
                     y
                 );
-                DLR_SetPixel32(state->dest.pixels, state->dest.pitch, 4, x, y, rawColor);
+                DLR_WritePixel32(state->dest.pixels, state->dest.pitch, 4, x, y, rawColor);
             }
 
             lambda0 += lambda0_xstep;

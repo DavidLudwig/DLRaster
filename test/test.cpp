@@ -312,7 +312,7 @@ static void DLRTest_UpdateWindowTitles()
     char window_title[128];
     for (int i = 0; i < num_envs; ++i) {
         SDL_Surface * bg = DLRTest_GetSurfaceForView(&envs[i]);
-        Uint32 c = ( ! (bg && curX >= 0)) ? 0 : DLR_GetPixel32(bg->pixels, bg->pitch, 4, curX, curY);
+        Uint32 c = ( ! (bg && curX >= 0)) ? 0 : DLR_ReadPixel32(bg->pixels, bg->pitch, 4, curX, curY);
         Uint8 a, r, g, b;
         DLR_SplitARGB32(c, a, r, g, b);
 
@@ -989,7 +989,7 @@ SDL_Surface * DLRTest_CreateTexture256x256(const DLRTest_TextureType textureType
                 for (int x = 0; x < 256; ++x) {
                     Uint32 c = DLR_JoinARGB32(0xff, y, y, y);
                     //Uint32 c = (y == 100) ? 0xffffffff : 0x88888888;
-                    DLR_SetPixel32(textureSrc->pixels, textureSrc->pitch, 4, x, y, c);
+                    DLR_WritePixel32(textureSrc->pixels, textureSrc->pitch, 4, x, y, c);
                 }
             }
         } break;
@@ -999,7 +999,7 @@ SDL_Surface * DLRTest_CreateTexture256x256(const DLRTest_TextureType textureType
             for (int y = 0; y < 256; ++y) {
                 for (int x = 0; x < 256; ++x) {
                     Uint32 c = DLR_JoinARGB32(0xff, x, x, x);
-                    DLR_SetPixel32(textureSrc->pixels, textureSrc->pitch, 4, x, y, c);
+                    DLR_WritePixel32(textureSrc->pixels, textureSrc->pitch, 4, x, y, c);
                 }
             }
         } break;
@@ -1530,11 +1530,11 @@ void DLRTest_Tick()
                     for (int x = 0; x < dest->w; ++x) {
                         Uint32 dc = 0xffff0000;
                         if (A && B) {
-                            Uint32 ac = DLR_GetPixel32(A->pixels, A->pitch, 4, x, y);
+                            Uint32 ac = DLR_ReadPixel32(A->pixels, A->pitch, 4, x, y);
                             int aa, ar, ag, ab;
                             DLR_SplitARGB32(ac, aa, ar, ag, ab);
 
-                            Uint32 bc = DLR_GetPixel32(B->pixels, B->pitch, 4, x, y);
+                            Uint32 bc = DLR_ReadPixel32(B->pixels, B->pitch, 4, x, y);
                             int ba, br, bg, bb;
                             DLR_SplitARGB32(bc, ba, br, bg, bb);
 
@@ -1554,7 +1554,7 @@ void DLRTest_Tick()
 
                             dc = beyond ? 0xffffffff : 0x00000000;
                         }
-                        DLR_SetPixel32(dest->pixels, dest->pitch, 4, x, y, dc);
+                        DLR_WritePixel32(dest->pixels, dest->pitch, 4, x, y, dc);
                     }
                 }
             }
