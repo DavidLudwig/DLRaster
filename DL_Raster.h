@@ -351,6 +351,45 @@ static inline bool DLR_WithinEdgeAreaClockwise(DLR_Number barycentric, DLR_Numbe
 }
 
 template <typename DLR_Number, typename DLR_Vertex>
+static inline DLR_Color<DLR_Number> DLR_PS_InterpolateVertexColor(
+    const DLR_Vertex & v0,
+    const DLR_Vertex & v1,
+    const DLR_Vertex & v2,
+    const DLR_Number lambda0,
+    const DLR_Number lambda1,
+    const DLR_Number lambda2
+)
+{
+    return
+        (DLR_VertexColor<DLR_Number, DLR_Vertex>(v0) * lambda0) +
+        (DLR_VertexColor<DLR_Number, DLR_Vertex>(v1) * lambda1) +
+        (DLR_VertexColor<DLR_Number, DLR_Vertex>(v2) * lambda2);
+}
+
+template <typename DLR_Number, typename DLR_Vertex>
+static inline DLR_Color<DLR_Number> DLR_PS_TextureSample(
+    const DLR_Vertex & v0,
+    const DLR_Vertex & v1,
+    const DLR_Vertex & v2,
+    const DLR_Number lambda0,
+    const DLR_Number lambda1,
+    const DLR_Number lambda2,
+    const DLR_SurfaceRef & texture
+)
+{
+    const DLR_Number uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
+    const DLR_Number uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
+    const DLR_Number ftexX = (uv * (DLR_Number)(texture.w /* - 1*/));
+    const DLR_Number ftexY = (uw * (DLR_Number)(texture.h /* - 1*/));
+    const int ntexX = DLR_Min((int)ftexX, texture.w - 1);
+    const int ntexY = DLR_Min((int)ftexY, texture.h - 1);
+    DLR_Assert(ntexX >= 0 && ntexX < texture.w);
+    DLR_Assert(ntexY >= 0 && ntexY < texture.h);
+    const DLR_Color<uint8_t> ntexC = DLR_ReadPixel32(texture.pixels, texture.pitch, 4, ntexX, ntexY);
+    return DLR_ConvertColor<DLR_Number, uint8_t>(ntexC);
+}
+
+template <typename DLR_Number, typename DLR_Vertex>
 static inline uint32_t DLR_PixelShade_Generic(
     const DLR_Vertex & v0,
     const DLR_Vertex & v1,
@@ -363,22 +402,10 @@ static inline uint32_t DLR_PixelShade_Generic(
     const int y
 )
 {
-    DLR_Color<DLR_Number> fincomingC = \
-        (DLR_VertexColor<DLR_Number, DLR_Vertex>(v0) * lambda0) +
-        (DLR_VertexColor<DLR_Number, DLR_Vertex>(v1) * lambda1) +
-        (DLR_VertexColor<DLR_Number, DLR_Vertex>(v2) * lambda2);
+    DLR_Color<DLR_Number> fincomingC = DLR_PS_InterpolateVertexColor(v0, v1, v2, lambda0, lambda1, lambda2);
 
     if (state->texture.pixels) {
-        const DLR_Number uv = (lambda0 * v0.uv) + (lambda1 * v1.uv) + (lambda2 * v2.uv);
-        const DLR_Number uw = (lambda0 * v0.uw) + (lambda1 * v1.uw) + (lambda2 * v2.uw);
-        const DLR_Number ftexX = (uv * (DLR_Number)(state->texture.w /* - 1*/));
-        const DLR_Number ftexY = (uw * (DLR_Number)(state->texture.h /* - 1*/));
-        const int ntexX = DLR_Min((int)ftexX, state->texture.w - 1);
-        const int ntexY = DLR_Min((int)ftexY, state->texture.h - 1);
-        DLR_Assert(ntexX >= 0 && ntexX < state->texture.w);
-        DLR_Assert(ntexY >= 0 && ntexY < state->texture.h);
-        const DLR_Color<uint8_t> ntexC = DLR_ReadPixel32(state->texture.pixels, state->texture.pitch, 4, ntexX, ntexY);
-        DLR_Color<DLR_Number> ftexC = DLR_ConvertColor<DLR_Number, uint8_t>(ntexC);
+        const DLR_Color<DLR_Number> ftexC = DLR_PS_TextureSample(v0, v1, v2, lambda0, lambda1, lambda2, state->texture);
         if (state->textureModulate & DLR_TEXTUREMODULATE_COLOR) {
             fincomingC = ftexC * fincomingC;
         } else {
