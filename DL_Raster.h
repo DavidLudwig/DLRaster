@@ -140,11 +140,17 @@ typedef struct DLR_State {
     void * userData;
 } DLR_State;
 
-#define DLR_ReadPixel32(PIXELS, PITCH, BYTESPP, X, Y) \
+#define DLR_ReadPixel32_Raw(PIXELS, PITCH, BYTESPP, X, Y) \
     (*(uint32_t *)((uint8_t *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP)))))
 
-#define DLR_WritePixel32(PIXELS, PITCH, BYTESPP, X, Y, COLOR) \
+#define DLR_ReadPixel32(SURFACE, X, Y) \
+    DLR_ReadPixel32_Raw((SURFACE).pixels, (SURFACE).pitch, 4, (X), (Y))
+
+#define DLR_WritePixel32_Raw(PIXELS, PITCH, BYTESPP, X, Y, COLOR) \
     (*(uint32_t *)((uint8_t *)(PIXELS) + (((Y) * (PITCH)) + ((X) * (BYTESPP))))) = (COLOR)
+
+#define DLR_WritePixel32(SURFACE, X, Y, COLOR) \
+    DLR_WritePixel32_Raw((SURFACE).pixels, (SURFACE).pitch, 4, (X), (Y), (COLOR));
 
 #define DLR_SplitARGB32(SRC, A, R, G, B) \
     (A) = (((SRC) >> 24) & 0xff), \
@@ -385,7 +391,7 @@ static inline DLR_Color<DLR_Number> DLR_PS_TextureSample(
     const int ntexY = DLR_Min((int)ftexY, texture.h - 1);
     DLR_Assert(ntexX >= 0 && ntexX < texture.w);
     DLR_Assert(ntexY >= 0 && ntexY < texture.h);
-    const DLR_Color<uint8_t> ntexC = DLR_ReadPixel32(texture.pixels, texture.pitch, 4, ntexX, ntexY);
+    const DLR_Color<uint8_t> ntexC = DLR_ReadPixel32(texture, ntexX, ntexY);
     return DLR_ConvertColor<DLR_Number, uint8_t>(ntexC);
 }
 
@@ -440,7 +446,7 @@ static inline uint32_t DLR_PixelShade_Generic(
         } break;
 
         case DLR_BLENDMODE_BLEND: {
-            const DLR_Color<uint8_t> ndestC = DLR_ReadPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
+            const DLR_Color<uint8_t> ndestC = DLR_ReadPixel32(state->dest, x, y);
             const DLR_Color<DLR_Number> fdestC = DLR_ConvertColor<DLR_Number, uint8_t>(ndestC);
             const DLR_Color<DLR_Number> fblendedC = DLR_PS_Blend(fincomingC, fdestC);
             return DLR_ConvertColor<uint8_t, DLR_Number>(fblendedC).ToARGB32();
@@ -521,7 +527,7 @@ void DLR_DrawTriangleT_Loop(
                     x,
                     y
                 );
-                DLR_WritePixel32(state->dest.pixels, state->dest.pitch, 4, x, y, rawColor);
+                DLR_WritePixel32(state->dest, x, y, rawColor);
             }
 
             lambda0 += lambda0_xstep;
