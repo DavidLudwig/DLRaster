@@ -389,6 +389,25 @@ static inline DLR_Color<DLR_Number> DLR_PS_TextureSample(
     return DLR_ConvertColor<DLR_Number, uint8_t>(ntexC);
 }
 
+template <typename DLR_Number>
+static DLR_Color<DLR_Number> DLR_PS_Blend(
+    const DLR_Color<DLR_Number> & srcC,
+    const DLR_Color<DLR_Number> & destC
+)
+{
+    DLR_Color<DLR_Number> finalC;
+
+    // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
+    finalC.r = (srcC.r * srcC.a) + (destC.r * ((DLR_Number)1 - srcC.a));
+    finalC.g = (srcC.g * srcC.a) + (destC.g * ((DLR_Number)1 - srcC.a));
+    finalC.b = (srcC.b * srcC.a) + (destC.b * ((DLR_Number)1 - srcC.a));
+
+    // dstA = srcA + (dstA * (1-srcA))
+    finalC.a = srcC.a + (destC.a * ((DLR_Number)1 - srcC.a));
+
+    return finalC;
+}
+
 template <typename DLR_Number, typename DLR_Vertex>
 static inline uint32_t DLR_PixelShade_Generic(
     const DLR_Vertex & v0,
@@ -421,19 +440,10 @@ static inline uint32_t DLR_PixelShade_Generic(
         } break;
 
         case DLR_BLENDMODE_BLEND: {
-            DLR_Color<uint8_t> ndest = (DLR_Color<uint8_t>) DLR_ReadPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
-            DLR_Color<DLR_Number> fdest = DLR_ConvertColor<DLR_Number, uint8_t>(ndest);
-
-            // dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
-            fdest.r = (fincomingC.r * fincomingC.a) + (fdest.r * ((DLR_Number)1 - fincomingC.a));
-            fdest.g = (fincomingC.g * fincomingC.a) + (fdest.g * ((DLR_Number)1 - fincomingC.a));
-            fdest.b = (fincomingC.b * fincomingC.a) + (fdest.b * ((DLR_Number)1 - fincomingC.a));
-
-            // dstA = srcA + (dstA * (1-srcA))
-            fdest.a = fincomingC.a + (fdest.a * ((DLR_Number)1 - fincomingC.a));
-
-            ndest = DLR_ConvertColor<uint8_t, DLR_Number>(fdest);
-            return ndest.ToARGB32();
+            const DLR_Color<uint8_t> ndestC = DLR_ReadPixel32(state->dest.pixels, state->dest.pitch, 4, x, y);
+            const DLR_Color<DLR_Number> fdestC = DLR_ConvertColor<DLR_Number, uint8_t>(ndestC);
+            const DLR_Color<DLR_Number> fblendedC = DLR_PS_Blend(fincomingC, fdestC);
+            return DLR_ConvertColor<uint8_t, DLR_Number>(fblendedC).ToARGB32();
         } break;
     } // switch (blendMode)
 
