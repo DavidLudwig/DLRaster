@@ -104,7 +104,7 @@ void DLRTest_Scene_OneBigRect(DLRTest_Scene * scene, DLRTest_Env * env)
     {
         static DLR_State state;
         if (DLRTest_InitState(env, &state)) {
-            state.fixedColorARGB = 0xffff0000;
+            state.fixedColorARGB = 0xff00ff00;
             state.srcColorMode = DLR_SRCCOLORMODE_FIXED;
         }
 
