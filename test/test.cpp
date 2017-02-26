@@ -123,7 +123,8 @@ static DLRTest_Env envs[] = {
 #endif
 };
 
-static int num_envs = SDL_arraysize(envs);
+static const int max_envs = SDL_arraysize(envs);
+static int num_envs = 1;
 
 enum DLRTest_Compare : Uint8 {
     DLRTEST_COMPARE_A       = (1 << 0),
@@ -1652,18 +1653,18 @@ void DLRTest_Tick()
 }
 
 int main(int argc, char ** argv) {
-    bool run_fixed_point_tests = true;
+    bool run_fixed_point_tests = false;
     for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0) {
+        if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             printf("DL_Raster test app\n"
                    "\n"
                    "Usage: \n"
-                   "\ttest [--headless] [--perf] [-n N] [-t N] [--scene NAME] [--list|-l]\n"
+                   "\ttest [--headless] [-c | --cmp] [-n N] [-t N] [--scene NAME] [--list|-l]\n"
                    "\n"
                    "Options:\n"
-                   "\t--headless        Run in headless-mode (without displaying any GUIs)\n"
+                   "\t--headless | -e   Run in headless-mode (without displaying any GUIs)\n"
                    "\t-n N              Run for N ticks, then quit, or -1 to run indefinitely (default: -1)\n"
-                   "\t--perf            Run in performance-testing mode, with only one window/renderer, and without running fixed-point tests\n"
+                   "\t--cmp | -c        Run in comparison mode, with multiple windows and renderers\n"
                    "\t-t N              Log a performance measurement every N ticks (default: %d)\n"
                    "\t--scene | -s NAME Renders a particular scene, NAME is case-insensitive (default: %s)\n"
                    "\t--list | -l       Lists available scenes\n"
@@ -1672,13 +1673,13 @@ int main(int argc, char ** argv) {
                    defaultScene->name
                    );
             exit(0);
-        } else if (strcmp(argv[i], "--headless") == 0) {
+        } else if (strcmp(argv[i], "-e") == 0 || strcmp(argv[i], "--headless") == 0) {
             for (int i = 0; i < SDL_arraysize(envs); ++i) {
                 envs[i].flags |= DLRTEST_ENV_HEADLESS;
             }
-        } else if (strcmp(argv[i], "--perf") == 0) {
-            num_envs = 1;
-            //run_fixed_point_tests = false;
+        } else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--cmp") == 0) {
+            num_envs = max_envs;
+            run_fixed_point_tests = true;
         } else if (strcmp(argv[i], "-n") == 0) {
             if ((i + 1) < argc) {
                 numTicksToQuit = atoi(argv[i+1]);
