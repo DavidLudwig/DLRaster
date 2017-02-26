@@ -16,7 +16,9 @@
 #undef main
 #define GL_GLEXT_PROTOTYPES
 #include "SDL_opengl.h"
+#if SDL_VERSION_ATLEAST(2,0,4)
 #include "SDL_opengl_glext.h"
+#endif
 #pragma comment(lib, "opengl32.lib")
 //#include <random>
 //#include <mutex>
