@@ -4,6 +4,8 @@
 // Disable deprecated C function warnings from MSVC:
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <stdio.h>
+
 #define DL_RASTER_IMPLEMENTATION
 #include "DL_Raster.h"
 
@@ -22,7 +24,6 @@
 #pragma comment(lib, "opengl32.lib")
 //#include <random>
 //#include <mutex>
-#include <stdio.h>
 
 #ifndef _MSC_VER
 #include <signal.h>
