@@ -90,8 +90,8 @@ struct DLRTest_Env {
     } inner;
 };
 
-static int winW = 460;
-static int winH = 400;
+static int winSpacingW = 10;
+static int winSpacingH = 60;
 
 static DLRTest_Env envs[] = {
     {
@@ -104,19 +104,19 @@ static DLRTest_Env envs[] = {
 #if DLRTEST_D3D10
     {
         DLRTEST_TYPE_D3D10,
-        winW + 10, 60,            // window initial X and Y
+        0, 0,
         0,
     },
 #else
     {
         DLRTEST_TYPE_OPENGL1,
-        winW + 10, 60,            // window initial X and Y
+        0, 0,
         0,
     },
 #endif
     {
         DLRTEST_TYPE_SOFTWARE,
-        (winW + 10) * 2, 60,            // window initial X and Y
+        0, 0,
         DLRTEST_ENV_COMPARE,
     },
 #endif
@@ -154,6 +154,10 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
         } break;
 
         case DLRTEST_TYPE_OPENGL1: {
+            int winW = 0;
+            int winH = 0;
+            SDL_GetWindowSize(env->window, &winW, &winH);
+
             SDL_GL_MakeCurrent(env->window, env->inner.gl.gl);
             SDL_Surface * output = env->inner.gl.exported;
             if (output) {
@@ -202,6 +206,10 @@ SDL_Surface * DLRTest_GetSurfaceForView(DLRTest_Env * env)
 
         case DLRTEST_TYPE_D3D10: {
 #if DLRTEST_D3D10
+            int winW = 0;
+            int winH = 0;
+            SDL_GetWindowSize(env->window, &winW, &winH);
+
             HRESULT hr;
             ID3D10Texture2D * backBuffer;
             hr = env->inner.d3d10.swapChain->GetBuffer(0, __uuidof(ID3D10Texture2D), (void **)&backBuffer);
@@ -441,6 +449,10 @@ void DLRTest_D3D10_Init(DLRTest_Env * env)
         SDL_Log("SDL_GetWindowWMInfo() failed: %s", SDL_GetError());
         exit(1);
     }
+
+    int winW = 0;
+    int winH = 0;
+    SDL_GetWindowSize(env->window, &winW, &winH);
 
     DXGI_SWAP_CHAIN_DESC swapChainDesc;
     memset(&swapChainDesc, 0, sizeof(swapChainDesc));
@@ -1104,11 +1116,14 @@ void DLRTest_Scene_Mix1Plain(DLRTest_Env * env)
 struct DLRTest_Scene {
     const char * name;
     void (*draw)(DLRTest_Env *);
+    int w;
+    int h;
 };
 
+
 static DLRTest_Scene allScenes[] = {
-    { "Mix1", &DLRTest_Scene_Mix1 },
-    { "Mix1Plain", &DLRTest_Scene_Mix1Plain },
+    { "Mix1",       &DLRTest_Scene_Mix1,        460, 400 },
+    { "Mix1Plain",  &DLRTest_Scene_Mix1Plain,   460, 400 },
 };
 
 static DLRTest_Scene * scene = &allScenes[0];
@@ -1154,10 +1169,10 @@ void DLR_Test_ProcessEvent(const SDL_Event & e)
                     exit(0);
                 } break;
 
-                case SDLK_RIGHT: if (DLRTEST_IS_LOCKED()) { lockedX = SDL_min(lockedX + 1, winW - 1); DLRTest_UpdateWindowTitles(); } break;
-                case SDLK_LEFT:  if (DLRTEST_IS_LOCKED()) { lockedX = SDL_max(lockedX - 1,        0); DLRTest_UpdateWindowTitles(); } break;
-                case SDLK_DOWN:  if (DLRTEST_IS_LOCKED()) { lockedY = SDL_min(lockedY + 1, winH - 1); DLRTest_UpdateWindowTitles(); } break;
-                case SDLK_UP:    if (DLRTEST_IS_LOCKED()) { lockedY = SDL_max(lockedY - 1,        0); DLRTest_UpdateWindowTitles(); } break;
+                case SDLK_RIGHT: if (DLRTEST_IS_LOCKED()) { lockedX = SDL_min(lockedX + 1, scene->w - 1); DLRTest_UpdateWindowTitles(); } break;
+                case SDLK_LEFT:  if (DLRTEST_IS_LOCKED()) { lockedX = SDL_max(lockedX - 1,            0); DLRTest_UpdateWindowTitles(); } break;
+                case SDLK_DOWN:  if (DLRTEST_IS_LOCKED()) { lockedY = SDL_min(lockedY + 1, scene->h - 1); DLRTest_UpdateWindowTitles(); } break;
+                case SDLK_UP:    if (DLRTEST_IS_LOCKED()) { lockedY = SDL_max(lockedY - 1,            0); DLRTest_UpdateWindowTitles(); } break;
 
                 case SDLK_0:
                 case SDLK_1:
@@ -1491,7 +1506,7 @@ void DLRTest_Tick()
     gbMat4 translateXY;
     gb_mat4_translate(&translateXY, {-1.f, -1.f, 0});
     gbMat4 scaleXY;
-    gb_mat4_scale(&scaleXY, {2.f/(float)winW, 2.f/(float)winH, 1});
+    gb_mat4_scale(&scaleXY, {2.f/(float)scene->w, 2.f/(float)scene->h, 1});
     gbMat4 finalM;
     gb_mat4_mul(&finalM, &rotateX, &translateXY);
     gb_mat4_mul(&finalM, &finalM, &scaleXY);
@@ -1710,6 +1725,17 @@ int main(int argc, char ** argv) {
         DLRTest_RunFixedPointTests();
     }
 
+    // Setup envs
+    {
+        int winX = 0;
+        int winY = winSpacingH;
+        for (int i = 0; i < num_envs; ++i) {
+            envs[i].window_x = winX;
+            envs[i].window_y = winY;
+            winX += scene->w + winSpacingW;
+        }
+    }
+
     // Init SDL, but only if we're not all-headless
     for (int i = 0; i < num_envs; ++i) {
         if ( ! (envs[i].flags & DLRTEST_ENV_HEADLESS)) {
@@ -1734,7 +1760,7 @@ int main(int argc, char ** argv) {
                 "DLRTest",
                 envs[i].window_x,
                 envs[i].window_y,
-                winW, winH,
+                scene->w, scene->h,
                 window_flags
             );
             if ( ! envs[i].window) {
@@ -1751,13 +1777,13 @@ int main(int argc, char ** argv) {
                         SDL_Log("SDL_CreateRenderer failed, err=%s", SDL_GetError());
                         exit(1);
                     }
-                    envs[i].inner.sw.bgTex = SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, winW, winH);
+                    envs[i].inner.sw.bgTex = SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, scene->w, scene->h);
                     if ( ! envs[i].inner.sw.bgTex) {
                         SDL_Log("Can't create background texture: %s", SDL_GetError());
                         exit(1);
                     }
                 }
-                envs[i].inner.sw.bg = SDL_CreateRGBSurface(0, winW, winH, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+                envs[i].inner.sw.bg = SDL_CreateRGBSurface(0, scene->w, scene->h, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
                 if ( ! envs[i].inner.sw.bg) {
                     SDL_Log("Can't create background surface: %s", SDL_GetError());
                     exit(1);
