@@ -79,6 +79,11 @@ typedef DLR_FixedT<int32_t, DLR_FIXED_PRECISION, int64_t> DLR_Fixed;
 typedef DLR_FixedT<int64_t, DLR_FIXED_PRECISION * 2, int64_t> DLR_FixedBig;
 
 
+typedef enum { 
+    DLR_SRCCOLORMODE_VERTEX     = 0,
+    DLR_SRCCOLORMODE_FIXED      = 1,
+} DLR_SourceColorMode;
+
 typedef enum {
     DLR_BLENDMODE_NONE      = 0,
     DLR_BLENDMODE_BLEND     = 1,    /* alpha blending
@@ -135,6 +140,8 @@ typedef struct DLR_SurfaceRef {
 typedef struct DLR_State {
     DLR_SurfaceRef dest;        // a NON-owning pointer!
     DLR_SurfaceRef texture;     // a NON-owning pointer!
+    DLR_SourceColorMode srcColorMode;
+    uint32_t fixedColorARGB;
     DLR_BlendMode blendMode;
     DLR_TextureModulate textureModulate;
     void * userData;
@@ -427,7 +434,13 @@ static inline uint32_t DLR_PixelShade_Generic(
     const int y
 )
 {
-    DLR_Color<DLR_Number> fincomingC = DLR_PS_InterpolateVertexColor(v0, v1, v2, lambda0, lambda1, lambda2);
+    DLR_Color<DLR_Number> fincomingC;
+    if (state->srcColorMode == DLR_SRCCOLORMODE_VERTEX) {
+        fincomingC = DLR_PS_InterpolateVertexColor(v0, v1, v2, lambda0, lambda1, lambda2);
+    } else {
+        const DLR_Color<uint8_t> temp = (DLR_Color<uint8_t>) state->fixedColorARGB;
+        fincomingC = DLR_ConvertColor<DLR_Number, uint8_t>(temp);
+    }
 
     if (state->texture.pixels) {
         const DLR_Color<DLR_Number> ftexC = DLR_PS_TextureSample(v0, v1, v2, lambda0, lambda1, lambda2, state->texture);

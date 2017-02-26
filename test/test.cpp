@@ -5,6 +5,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
+#include <limits>
 
 #define DL_RASTER_IMPLEMENTATION
 #include "DL_Raster.h"
@@ -428,7 +429,14 @@ void DLRTest_DrawTriangles_OpenGL1(
 
     glBegin(GL_TRIANGLES);
     for (size_t i = 0; i < vertexCount; ++i) {
-        if (state->textureModulate == DLR_TEXTUREMODULATE_COLOR || state->texture.pixels == NULL) {
+        if (state->srcColorMode == DLR_SRCCOLORMODE_FIXED) {
+            glColor4ub(
+                (state->fixedColorARGB >> 16) & 0xff,
+                (state->fixedColorARGB >>  8) & 0xff,
+                (state->fixedColorARGB >>  0) & 0xff,
+                (state->fixedColorARGB >> 24) & 0xff
+            );
+        } else if (state->textureModulate == DLR_TEXTUREMODULATE_COLOR || state->texture.pixels == NULL) {
             glColor4d(vertices[i].r, vertices[i].g, vertices[i].b, vertices[i].a);
         } else {
             glColor4d(1., 1., 1., 1.);
@@ -977,7 +985,7 @@ void DLRTest_DrawTriangles(
 
 struct DLRTest_Scene {
     const char * name;
-    void (*draw)(DLRTest_Env *);
+    void (*draw)(DLRTest_Scene *, DLRTest_Env *);
     int w;
     int h;
 };
@@ -990,7 +998,7 @@ static const DLRTest_Scene * defaultScene = scene;
 void DLRTest_DrawScene(DLRTest_Env * env)
 {
     if (scene && scene->draw) {
-        scene->draw(env);
+        scene->draw(scene, env);
     }
 }
 
