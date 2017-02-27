@@ -65,6 +65,13 @@ struct DLR_FixedT {
     inline DLR_FixedT operator<<(unsigned int shift) const { return FromRaw(data << shift); }
 
     inline DLR_FixedT & operator+=(DLR_FixedT b) { *this = *this + b; return *this; }
+    inline DLR_FixedT & operator-=(DLR_FixedT b) { *this = *this - b; return *this; }
+
+    // pre-increment
+    inline DLR_FixedT & operator++() { *this += (DLR_FixedT)1; return *this; }
+
+    // post-increment
+    inline DLR_FixedT operator++(int) { DLR_FixedT old(*this); operator++(); return old; }
 
     inline bool operator==(DLR_FixedT b) const { return data == b.data; }
     inline bool operator!=(DLR_FixedT b) const { return data != b.data; }
@@ -173,6 +180,8 @@ typedef struct DLR_State {
 
 #define DLR_Min(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define DLR_Max(X, Y) (((X) > (Y)) ? (X) : (Y))
+#define DLR_Min3(A, B, C) (DLR_Min(DLR_Min((A),(B)),(C)))
+#define DLR_Max3(A, B, C) (DLR_Max(DLR_Max((A),(B)),(C)))
 
 #if !defined(NDEBUG) && (defined(DEBUG) || defined(_DEBUG))
     #include <assert.h>
@@ -626,6 +635,81 @@ DLR_EXTERN_C void DLR_DrawTrianglesX(DLR_State * state, const DLR_VertexX * vert
     }
 }
 
+template <typename DLR_Number, typename DLR_Vertex>
+static void DLR_DrawTriangle2(DLR_State * state, DLR_Vertex v1, DLR_Vertex v2, DLR_Vertex v3)
+{
+    // Cache vertex positions
+    const DLR_Number y1 = (DLR_Number) v1.y;
+    const DLR_Number y2 = (DLR_Number) v2.y;
+    const DLR_Number y3 = (DLR_Number) v3.y;
+
+    const DLR_Number x1 = (DLR_Number) v1.x;
+    const DLR_Number x2 = (DLR_Number) v2.x;
+    const DLR_Number x3 = (DLR_Number) v3.x;
+
+    // Pre-compute common parts of line functions
+    const DLR_Number dy12 = y1 - y2;
+    const DLR_Number dy23 = y2 - y3;
+    const DLR_Number dy31 = y3 - y1;
+
+    const DLR_Number dx12 = x1 - x2;
+    const DLR_Number dx23 = x2 - x3;
+    const DLR_Number dx31 = x3 - x1;
+
+    // Calculate the bounding rectangle
+    const int ymin = (int) DLR_Min3(y1, y2, y3);
+    const int ymax = (int) DLR_Max3(y1, y2, y3);
+    const int xmin = (int) DLR_Min3(x1, x2, x3);
+    const int xmax = (int) DLR_Max3(x1, x2, x3);
+
+    // Calculate moving variables
+    // DLR_Number side_12_yinitial = (x1 - x2) * (ymin - y1) - (y1 - y2) * (xmin - x1);
+    // DLR_Number side_23_yinitial = (x2 - x3) * (ymin - y2) - (y2 - y3) * (xmin - x2);
+    // DLR_Number side_31_yinitial = (x3 - x1) * (ymin - y3) - (y3 - y1) * (xmin - x3);
+    DLR_Number side_12_yinitial = dx12 * ((DLR_Number)ymin - y1) - dy12 * ((DLR_Number)xmin - x1);
+    DLR_Number side_23_yinitial = dx23 * ((DLR_Number)ymin - y2) - dy23 * ((DLR_Number)xmin - x2);
+    DLR_Number side_31_yinitial = dx31 * ((DLR_Number)ymin - y3) - dy31 * ((DLR_Number)xmin - x3);
+    
+    // Adjust moving variables for left and top edges
+    if (dy12 < (DLR_Number)0 || (dy12 == (DLR_Number)0 && dx12 > (DLR_Number)0)) side_12_yinitial += (DLR_Number)1;
+    if (dy23 < (DLR_Number)0 || (dy23 == (DLR_Number)0 && dx23 > (DLR_Number)0)) side_23_yinitial += (DLR_Number)1;
+    if (dy31 < (DLR_Number)0 || (dy31 == (DLR_Number)0 && dx31 > (DLR_Number)0)) side_31_yinitial += (DLR_Number)1;
+    
+    // Setup moving pointer to destination pixel buffer
+    uint8_t * dest = (uint8_t *)state->dest.pixels;
+    const size_t pitch = state->dest.pitch;
+    const uint32_t color = state->fixedColorARGB;
+
+    // Iterate through each pixel
+    for (int y = ymin; y < ymax; ++y) {
+        DLR_Number side_12 = side_12_yinitial;
+        DLR_Number side_23 = side_23_yinitial;
+        DLR_Number side_31 = side_31_yinitial;
+
+        for (int x = xmin; x < xmax; ++x) {
+            // side_12 = (x1 - x2) * ((DLR_Number)y - y1) - (y1 - y2) * ((DLR_Number)x - x1);
+            // side_23 = (x2 - x3) * ((DLR_Number)y - y2) - (y2 - y3) * ((DLR_Number)x - x2);
+            // side_31 = (x3 - x1) * ((DLR_Number)y - y3) - (y3 - y1) * ((DLR_Number)x - x3);
+
+            if (side_12 > (DLR_Number)0 &&
+                side_23 > (DLR_Number)0 &&
+                side_31 > (DLR_Number)0)
+            {
+                ((uint32_t *)dest)[x] = color;
+            }
+
+            side_12 -= dy12;
+            side_23 -= dy23;
+            side_31 -= dy31;
+        }
+
+        side_12_yinitial += dx12;
+        side_23_yinitial += dx23;
+        side_31_yinitial += dx31;
+        dest += pitch;
+    }
+}
+
 DLR_EXTERN_C void DLR_DrawTrianglesD(DLR_State * state, const DLR_VertexD * vertices, size_t vertexCount)
 {
     DLR_VertexX converted[3];
@@ -633,19 +717,24 @@ DLR_EXTERN_C void DLR_DrawTrianglesD(DLR_State * state, const DLR_VertexD * vert
 #if DLR_USE_DOUBLE
         DLR_DrawTriangleT<double, DLR_VertexD, double>(state, vertices[i], vertices[i+1], vertices[i+2]);
 #else
-        for (int j = 0; j < 3; ++j) {
-            converted[j] = {
-                (DLR_Fixed)vertices[i+j].x,
-                (DLR_Fixed)vertices[i+j].y,
-                (DLR_Fixed)vertices[i+j].b,
-                (DLR_Fixed)vertices[i+j].g,
-                (DLR_Fixed)vertices[i+j].r,
-                (DLR_Fixed)vertices[i+j].a,
-                (DLR_Fixed)vertices[i+j].uv,
-                (DLR_Fixed)vertices[i+j].uw
-            };
+        if (state->srcColorMode == DLR_SRCCOLORMODE_FIXED) {
+            DLR_DrawTriangle2<DLR_FixedT<int32_t, 4, int32_t>, DLR_VertexD>(state, vertices[i], vertices[i+1], vertices[i+2]);
+        } else
+        {
+            for (int j = 0; j < 3; ++j) {
+                converted[j] = {
+                    (DLR_Fixed)vertices[i+j].x,
+                    (DLR_Fixed)vertices[i+j].y,
+                    (DLR_Fixed)vertices[i+j].b,
+                    (DLR_Fixed)vertices[i+j].g,
+                    (DLR_Fixed)vertices[i+j].r,
+                    (DLR_Fixed)vertices[i+j].a,
+                    (DLR_Fixed)vertices[i+j].uv,
+                    (DLR_Fixed)vertices[i+j].uw
+                };
+            }
+            DLR_DrawTriangleX(state, converted[0], converted[1], converted[2]);
         }
-        DLR_DrawTriangleX(state, converted[0], converted[1], converted[2]);
 #endif
     }
 }

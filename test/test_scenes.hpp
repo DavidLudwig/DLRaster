@@ -64,9 +64,9 @@ namespace DLRTest_Shape_Multi_Color_Triangle
         {1, 0, 0, 1},
     };
     const DLR_VertexD vertices[] = {
-        {originX      , originY      ,    c[0].b, c[0].g, c[0].r, c[0].a,   0, 0},
-        {originX + 300, originY + 150,    c[1].b, c[1].g, c[1].r, c[1].a,   0, 0},
         {originX + 150, originY + 300,    c[2].b, c[2].g, c[2].r, c[2].a,   0, 0},
+        {originX + 300, originY + 150,    c[1].b, c[1].g, c[1].r, c[1].a,   0, 0},
+        {originX      , originY      ,    c[0].b, c[0].g, c[0].r, c[0].a,   0, 0},
     };
 }
 
@@ -86,47 +86,15 @@ namespace DLRTest_Shape_Textured_Square
 
     const DLR_VertexD vertices[] = {
         // TRIANGLE: top-right
-        {originX        , originY,            c[0].b, c[0].g, c[0].r, c[0].a,    0, 0},    // left  top
-        {originX + rectW, originY,            c[1].b, c[1].g, c[1].r, c[1].a,    1, 0},    // right top
         {originX + rectW, originY + rectH,    c[2].b, c[2].g, c[2].r, c[2].a,    1, 1},    // right bottom
+        {originX + rectW, originY,            c[1].b, c[1].g, c[1].r, c[1].a,    1, 0},    // right top
+        {originX        , originY,            c[0].b, c[0].g, c[0].r, c[0].a,    0, 0},    // left  top
 
         // TRIANGLE: bottom-left
-        {originX + rectW, originY + rectH,    c[2].b, c[2].g, c[2].r, c[2].a,    1, 1},    // right bottom
-        {originX        , originY + rectH,    c[3].b, c[3].g, c[3].r, c[3].a,    0, 1},    // left  bottom
         {originX        , originY        ,    c[0].b, c[0].g, c[0].r, c[0].a,    0, 0},    // left  top
+        {originX        , originY + rectH,    c[3].b, c[3].g, c[3].r, c[3].a,    0, 1},    // left  bottom
+        {originX + rectW, originY + rectH,    c[2].b, c[2].g, c[2].r, c[2].a,    1, 1},    // right bottom
     };
-}
-
-void DLRTest_Scene_OneBigRect(DLRTest_Scene * scene, DLRTest_Env * env)
-{
-    DLRTest_Clear(env, 0xff000000);
-
-    {
-        static DLR_State state;
-        if (DLRTest_InitState(env, &state)) {
-            state.fixedColorARGB = 0xff00ff00;
-            state.srcColorMode = DLR_SRCCOLORMODE_FIXED;
-        }
-
-        const DLR_Float originX = 0;
-        const DLR_Float originY = 0;
-        const DLR_Float rectW = scene->w;
-        const DLR_Float rectH = scene->h;
-
-        const DLR_VertexD vertices[] = {
-            // TRIANGLE: top-right
-            {originX        , originY,            1, 1, 1, 1,    0, 0},    // left  top
-            {originX + rectW, originY,            1, 1, 1, 1,    0, 0},    // right top
-            {originX + rectW, originY + rectH,    1, 1, 1, 1,    0, 0},    // right bottom
-
-            // TRIANGLE: bottom-left
-            {originX + rectW, originY + rectH,    1, 1, 1, 1,    0, 0},    // right bottom
-            {originX        , originY + rectH,    1, 1, 1, 1,    0, 0},    // left  bottom
-            {originX        , originY        ,    1, 1, 1, 1,    0, 0},    // left  top
-        };
-
-        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
-    }
 }
 
 void DLRTest_Scene_Mix1(DLRTest_Scene * scene, DLRTest_Env * env)
@@ -172,10 +140,70 @@ void DLRTest_Scene_Mix1Plain(DLRTest_Scene * scene, DLRTest_Env * env)
     }
 }
 
+void DLRTest_Scene_LeftEdge(DLRTest_Scene * scene, DLRTest_Env * env)
+{
+    DLRTest_Clear(env, 0xff000000);
+
+    {
+        static DLR_State state;
+        if (DLRTest_InitState(env, &state)) {
+            state.fixedColorARGB = 0xff00ff00;
+            state.srcColorMode = DLR_SRCCOLORMODE_FIXED;
+        }
+
+        const DLR_Float originX = 0;
+        const DLR_Float originY = 0;
+        const DLR_Float rectW = scene->w;
+        const DLR_Float rectH = scene->h;
+
+        const DLR_VertexD vertices[] = {
+            // TRIANGLE: top-right
+            {originX        , originY,            1, 1, 1, 1,    0, 0},    // left  top
+            {originX + rectW, originY + rectH,    1, 1, 1, 1,    0, 0},    // right bottom
+            {originX + rectW, originY,            1, 1, 1, 1,    0, 0},    // right top
+        };
+
+        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
+    }
+}
+
+void DLRTest_Scene_BigRect(DLRTest_Scene * scene, DLRTest_Env * env)
+{
+    DLRTest_Clear(env, 0xff000000);
+
+    {
+        static DLR_State state;
+        if (DLRTest_InitState(env, &state)) {
+            state.fixedColorARGB = 0xff00ff00;
+            state.srcColorMode = DLR_SRCCOLORMODE_FIXED;
+        }
+
+        const DLR_Float originX = 0;
+        const DLR_Float originY = 0;
+        const DLR_Float rectW = scene->w;
+        const DLR_Float rectH = scene->h;
+
+        const DLR_VertexD vertices[] = {
+            // TRIANGLE: top-right
+            {originX        , originY,            1, 1, 1, 1,    0, 0},    // left  top
+            {originX + rectW, originY + rectH,    1, 1, 1, 1,    0, 0},    // right bottom
+            {originX + rectW, originY,            1, 1, 1, 1,    0, 0},    // right top
+
+            // TRIANGLE: bottom-left
+            {originX        , originY        ,    1, 1, 1, 1,    0, 0},    // left  top
+            {originX        , originY + rectH,    1, 1, 1, 1,    0, 0},    // left  bottom
+            {originX + rectW, originY + rectH,    1, 1, 1, 1,    0, 0},    // right bottom
+        };
+
+        DLRTest_DrawTriangles(env, &state, vertices, SDL_arraysize(vertices));
+    }
+}
+
 static DLRTest_Scene allScenes[] = {
-    { "Mix1",           &DLRTest_Scene_Mix1,        460,    400 },
-    { "Mix1Plain",      &DLRTest_Scene_Mix1Plain,   460,    400 },
-    { "OneBigRect",     &DLRTest_Scene_OneBigRect,  300,    300 }, //1024,   768 }, // FIXME: rasterizer fails with large scenes!
+    { "Mix1",       &DLRTest_Scene_Mix1,        460,    400 },
+    { "Mix1Plain",  &DLRTest_Scene_Mix1Plain,   460,    400 },
+    { "LeftEdge",   &DLRTest_Scene_LeftEdge,    400,    400 },
+    { "BigRect",    &DLRTest_Scene_BigRect,     768,    768 },
 };
 
 //
