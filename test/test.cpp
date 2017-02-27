@@ -1516,20 +1516,27 @@ void DLRTest_Tick()
     }
 }
 
+static void DLRTest_ListScenes()
+{
+    for (int j = 0; j < SDL_arraysize(allScenes); ++j) {
+        printf("%s\n", allScenes[j].name);
+    }
+}
+
 int main(int argc, char ** argv) {
     bool run_fixed_point_tests = false;
     for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+        if (strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "--help") == 0) {
             printf("DL_Raster test app\n"
                    "\n"
                    "Usage: \n"
-                   "\ttest [--headless] [-c | --cmp] [-n N] [-t N] [--scene NAME] [--list|-l]\n"
+                   "\ttest [-h | --headless] [-c | --cmp] [-n N] [-t N] [--scene NAME] [--list|-l]\n"
                    "\n"
                    "Options:\n"
-                   "\t--headless | -e   Run in headless-mode (without displaying any GUIs)\n"
-                   "\t-n N              Run for N ticks, then quit, or -1 to run indefinitely (default: -1)\n"
+                   "\t--headless | -h   Run in headless-mode (without displaying any GUIs)\n"
+                   "\t-t N              Run for N ticks, then quit, or -1 to run indefinitely (default: -1)\n"
                    "\t--cmp | -c        Run in comparison mode, with multiple windows and renderers\n"
-                   "\t-t N              Log a performance measurement every N ticks (default: %d)\n"
+                   "\t-n N              Log a performance measurement every N ticks (default: %d)\n"
                    "\t--scene | -s NAME Renders a particular scene, NAME is case-insensitive (default: %s)\n"
                    "\t--list | -l       Lists available scenes\n"
                    "\n",
@@ -1537,19 +1544,19 @@ int main(int argc, char ** argv) {
                    defaultScene->name
                    );
             exit(0);
-        } else if (strcmp(argv[i], "-e") == 0 || strcmp(argv[i], "--headless") == 0) {
+        } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--headless") == 0) {
             for (int i = 0; i < SDL_arraysize(envs); ++i) {
                 envs[i].flags |= DLRTEST_ENV_HEADLESS;
             }
         } else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--cmp") == 0) {
             num_envs = max_envs;
             run_fixed_point_tests = true;
-        } else if (strcmp(argv[i], "-n") == 0) {
+        } else if (strcmp(argv[i], "-t") == 0) {
             if ((i + 1) < argc) {
                 numTicksToQuit = atoi(argv[i+1]);
                 i++;
             }
-        } else if (strcmp(argv[i], "-t") == 0) {
+        } else if (strcmp(argv[i], "-n") == 0) {
             if ((i + 1) < argc) {
                 numTicksBetweenPerfMeasurements = atoi(argv[i+1]);
                 i++;
@@ -1564,15 +1571,15 @@ int main(int argc, char ** argv) {
                     }
                 }
                 if (j == SDL_arraysize(allScenes)) {
-                    printf("ERROR: Unable to find scene named, \"%s\".\nUse -l or --list to list possible scene names.\n", argv[i+1]);
+                    // printf("ERROR: Unable to find scene named, \"%s\".\nUse -l or --list to list possible scene names.\n", argv[i+1]);
+                    printf("ERROR: Unable to find scene named, \"%s\".  Possible scenes include:\n\n", argv[i+1]);
+                    DLRTest_ListScenes();
                     exit(1);
                 }
                 i++;
             }
         } else if (strcmp(argv[i], "-l") == 0 || strcmp(argv[i], "--list") == 0) {
-            for (int j = 0; j < SDL_arraysize(allScenes); ++j) {
-                printf("%s\n", allScenes[j].name);
-            }
+            DLRTest_ListScenes();
             exit(0);
         }
     }
